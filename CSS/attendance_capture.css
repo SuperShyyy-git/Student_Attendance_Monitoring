@@ -1,0 +1,110 @@
+/* attendance_capture.css */
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f3f4f6;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.capture-wrapper {
+    width: 92%;
+    max-width: 1200px;
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.12);
+    padding: 22px;
+    display: flex;
+    gap: 22px;
+}
+
+/* left logo */
+.left-section {
+    width: 45%;
+    background: #eef4fb;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 18px;
+}
+
+.left-section img {
+    width: 80%;
+    max-width: 360px;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+/* right side */
+.right-section {
+    width: 55%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* camera preview */
+.camera-box {
+    width: 100%;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 420px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* rfid field */
+.rfid-box {
+    width: 100%;
+    margin-top: 18px;
+    text-align: center;
+}
+
+.rfid-box input {
+    width: 78%;
+    max-width: 520px;
+    padding: 16px 20px;
+    font-size: 20px;
+    border-radius: 10px;
+    border: 2px solid #1d3557;
+    outline: none;
+    text-align: center;
+    letter-spacing: 2px;
+}
+
+.status-message {
+    margin-top: 12px;
+    font-size: 15px;
+    color: #1d3557;
+    min-height: 22px;
+}
+
+/* success / error states */
+.status-success { color: #1f8a3d; }
+.status-error   { color: #c0392b; }
+
+/* responsive */
+@media (max-width: 900px) {
+    .capture-wrapper {
+        flex-direction: column;
+        width: 94%;
+        padding: 16px;
+    }
+    .left-section, .right-section { width: 100%; }
+    .camera-box { height: 320px; }
+    .rfid-box input { width: 92%; }
+}

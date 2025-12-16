@@ -1,0 +1,198 @@
+/* ===================== GLOBAL ===================== */
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #333;
+}
+
+/* ===================== PAGE TITLE ===================== */
+.table-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #1d3557;
+}
+
+/* ===================== ADD STUDENT BUTTON ===================== */
+.btn-add-student {
+    background: #28a745; /* GREEN BUTTON */
+    color: white;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    margin-bottom: 20px;
+}
+
+.btn-add-student:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+/* ===================== ATTENDANCE TABLE (MATCHED STYLE) ===================== */
+.attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+/* HEADER — same dark blue as your other tables */
+.attendance-table thead {
+    background: #1d3557;
+    color: #fafafa;
+}
+
+.attendance-table th {
+    padding: 12px;
+    text-align: left;
+    font-size: 15px;
+    font-weight: 600;
+    border-bottom: 1px solid #ddd;
+}
+
+/* BODY */
+.attendance-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e6e6e6;
+    font-size: 14px;
+}
+
+/* ROW HOVER */
+.attendance-table tbody tr:hover {
+    background: #f7faff;
+}
+
+/* NO DATA ROW */
+.attendance-table td[colspan] {
+    padding: 20px;
+    font-size: 16px;
+    color: #777;
+}
+
+/* ===================== MODALS (OPTIONAL IF YOU USE THEM) ===================== */
+.edit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.edit-modal-box {
+    width: 430px;
+    background: white;
+    padding: 25px 28px;
+    border-radius: 14px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.25);
+    animation: showModal 0.25s ease;
+}
+
+@keyframes showModal {
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.edit-modal-box input,
+.edit-modal-box select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 14px;
+    border-radius: 8px;
+    border: 1px solid #cfcfcf;
+    font-size: 15px;
+    transition: 0.2s;
+}
+
+.edit-modal-box input:focus,
+.edit-modal-box select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40,167,69,0.2);
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.btn-save-edit {
+    background: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-save-edit:hover {
+    background: #218838;
+}
+
+#btn-cancel-add-student {
+    background: #dc3545;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#btn-cancel-add-student:hover {
+    background: #bb2d3b;
+}
+
+/* ===================== POPUP ===================== */
+.popup-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    width: 350px;
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    z-index: 9999;
+    display: none;
+    animation: popupFade 0.25s ease-out;
+    text-align: center;
+}
+
+@keyframes popupFade {
+    from { opacity: 0; transform: translate(-50%, -46%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.popup-ok-btn {
+    background: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.popup-ok-btn:hover {
+    background: #218838;
+}

@@ -1,0 +1,142 @@
+/* DARK BACKGROUND OVERLAY */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9000;
+}
+
+.hidden {
+    display: none;
+}
+
+/* MODAL BOX */
+.modal-box {
+    background: white;
+    width: 350px;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+/* FORM INPUTS */
+.section-form input,
+#edit-section,
+#edit-year-level {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    border-radius: 5px;
+    border: 1px solid #aaa;
+}
+
+/* BUTTONS */
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.btn-save-edit {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-cancel-edit {
+    background: #d9534f;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* POPUP MESSAGE */
+.popup-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 9999;
+    width: 320px;
+    text-align: center;
+    display: none;
+}
+
+/* OK BUTTON */
+.popup-ok-btn {
+    background: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 25px;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -60%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* EMBOSSED STYLE FOR EDIT & DELETE BUTTONS */
+.btn-edit,
+.btn-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 8px;
+
+    padding: 6px 12px;
+    font-size: 14px;
+
+    background: #f5f5f5;
+    border: 1px solid #d0d0d0;
+
+    /* EMBOSS EFFECT */
+    box-shadow: 
+        inset 1px 1px 2px rgba(255, 255, 255, 0.7),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.1),
+        0 2px 3px rgba(0, 0, 0, 0.15);
+
+    border-radius: 4px;
+    cursor: pointer;
+
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* PRESSED EFFECT */
+.btn-edit:active,
+.btn-delete:active {
+    box-shadow: 
+        inset -1px -1px 2px rgba(255, 255, 255, 0.4),
+        inset 1px 1px 2px rgba(0, 0, 0, 0.2);
+    background: #e8e8e8;
+}
+
+/* ICON COLORS */
+.btn-edit .icon {
+    color: #1e88e5; /* blue pencil */
+    font-size: 16px;
+}
+
+.btn-delete .icon {
+    color: #d9534f; /* red circle */
+    font-size: 18px;
+}
+
