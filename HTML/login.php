@@ -35,17 +35,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             // Redirect based on role
             if ($user["role"] === "machine") {
-                header("Location: /Student_Attendance_Monitoring/HTML/attendance_capture.php");
+                header("Location: /attendance/HTML/attendance_capture.php");
                 exit;
             }
 
             if ($user["role"] === "admin") {
-                header("Location: /Student_Attendance_Monitoring/HTML/dashboard.php");
+                header("Location: /attendance/HTML/dashboard.php");
                 exit;
             }
 
             if ($user["role"] === "teacher") {
-                header("Location: /Student_Attendance_Monitoring/HTML/dashboard.php");
+                header("Location: /attendance/HTML/dashboard.php");
                 exit;
             }
         }
@@ -111,3 +111,4 @@ if (isset($_SESSION["login_error"])) {
   </div>
 </body>
 </html>
+

@@ -17,7 +17,8 @@ if (ini_get("session.use_cookies")) {
 session_destroy();
 
 // Redirect to login page
-header('Location: http://localhost/Student_Attendance_Monitoring/HTML/login.php');
+header('Location: http://localhost/attendance/HTML/login.php');
 exit;
 
 ?>
+

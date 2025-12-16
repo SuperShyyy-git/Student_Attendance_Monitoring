@@ -52,7 +52,7 @@ $savePathForDB = "uploads/" . $filename;
 $python = "C:/Users/shiel/AppData/Local/Programs/Python/Python310/python.exe";
 
 // ✔ Path to your encoding script
-$script = "C:/xampp/htdocs/Student_Attendance_Monitoring/python/generate_encoding.py";
+$script = "C:/xampp/htdocs/attendance/python/generate_encoding.py";
 
 if (!file_exists($script)) {
     echo json_encode(["success" => false, "message" => "Python script not found: $script"]);
@@ -221,3 +221,4 @@ if ($stmt->execute()) {
 }
 
 ?>
+
