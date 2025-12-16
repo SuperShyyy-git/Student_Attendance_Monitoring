@@ -16,9 +16,10 @@ if ($grades) {
 // Load sections
 $sections = $conn->query("SELECT DISTINCT section FROM section_yrlevel ORDER BY section");
 $section_list = [];
-
-while ($s = $sections->fetch_assoc()) {
-    $section_list[] = $s['section'];
+if ($sections) {
+    while ($s = $sections->fetch_assoc()) {
+        $section_list[] = $s['section'];
+    }
 }
 
 echo json_encode([
