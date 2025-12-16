@@ -4,15 +4,15 @@ header("Content-Type: application/json");
 
 $id = intval($_POST['id'] ?? 0);
 $section = trim($_POST['section'] ?? '');
-$year = trim($_POST['year_level'] ?? '');
+$grade = trim($_POST['grade_level'] ?? '');
 
-if ($id <= 0 || $section === '' || $year === '') {
-    echo json_encode(["success" => false, "message" => "Invalid data"]);
+if ($section === '' || $grade === '' || $id <= 0) {
+    echo json_encode(['success' => false, 'message' => 'Invalid input']);
     exit;
 }
 
-$stmt = $conn->prepare("UPDATE section_yrlevel SET section=?, year_level=? WHERE id=?");
-$stmt->bind_param("ssi", $section, $year, $id);
+$stmt = $conn->prepare("UPDATE section_yrlevel SET section=?, grade_level=? WHERE id=?");
+$stmt->bind_param("ssi", $section, $grade, $id);
 
 if ($stmt->execute()) {
     echo json_encode(["success" => true]);

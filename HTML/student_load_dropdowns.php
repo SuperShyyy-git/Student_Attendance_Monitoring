@@ -5,11 +5,12 @@ header("Content-Type: application/json");
 $data = [];
 
 // Load year levels
-$years = $conn->query("SELECT DISTINCT year_level FROM section_yrlevel ORDER BY year_level");
-$year_list = [];
-
-while ($y = $years->fetch_assoc()) {
-    $year_list[] = $y['year_level'];
+$grades = $conn->query("SELECT DISTINCT grade_level FROM section_yrlevel ORDER BY grade_level");
+$grade_list = [];
+if ($grades) {
+    while ($g = $grades->fetch_assoc()) {
+        $grade_list[] = $g['grade_level'];
+    }
 }
 
 // Load sections
@@ -22,7 +23,7 @@ while ($s = $sections->fetch_assoc()) {
 
 echo json_encode([
     "success" => true,
-    "year_levels" => $year_list,
+    "grade_levels" => $grade_list,
     "sections" => $section_list
 ]);
 ?>

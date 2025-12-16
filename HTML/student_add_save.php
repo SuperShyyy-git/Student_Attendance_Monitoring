@@ -9,8 +9,8 @@ header("Content-Type: application/json");
 
 $required = [
     'student_id', 'firstname', 'lastname',
-    'year_level', 'section', 'guardian_name', 'guardian_contact',
-    'rfid_code', 'photo_data'
+    'grade_level', 'section', 'guardian_name', 'guardian_contact',
+    'photo_data'
 ];
 
 foreach ($required as $field) {
@@ -131,14 +131,14 @@ $encodingJson = json_encode($response["encoding"]);
 // 3. INSERT INTO DATABASE
 // =============================================================================
 
-// Server-side duplicate check: ensure student_id or RFID not already present
-$check = $conn->prepare("SELECT id FROM students WHERE student_id = ? OR rfid_code = ? LIMIT 1");
+// Server-side duplicate check: ensure student_id not already present
+$check = $conn->prepare("SELECT id FROM students WHERE student_id = ? LIMIT 1");
 if ($check) {
-    $check->bind_param('ss', $_POST['student_id'], $_POST['rfid_code']);
+    $check->bind_param('s', $_POST['student_id']);
     $check->execute();
     $checkRes = $check->get_result();
     if ($checkRes && $checkRes->num_rows > 0) {
-        echo json_encode(["success" => false, "message" => "Student with same Student ID or RFID already exists."]);
+        echo json_encode(["success" => false, "message" => "Student with same Student ID already exists."]);
         exit;
     }
     $check->close();
@@ -147,7 +147,7 @@ if ($check) {
 
 $stmt = $conn->prepare("
     INSERT INTO students 
-    (student_id, rfid_code, firstname, middlename, lastname, year_level, section,
+    (student_id, firstname, middlename, lastname, address, grade_level, section,
      guardian_name, guardian_contact, photo_path, face_encoding)
     VALUES (?,?,?,?,?,?,?,?,?,?,?)
 ");
@@ -155,11 +155,11 @@ $stmt = $conn->prepare("
 $stmt->bind_param(
     "sssssssssss",
     $_POST['student_id'],
-    $_POST['rfid_code'],
     $_POST['firstname'],
     $_POST['middlename'],
     $_POST['lastname'],
-    $_POST['year_level'],
+    $_POST['address'],
+    $_POST['grade_level'],
     $_POST['section'],
     $_POST['guardian_name'],
     $_POST['guardian_contact'],

@@ -39,7 +39,7 @@ function initLogoutButton() {
 
             // YES → logout
             modal.querySelector(".btn-yes").onclick = () => {
-                window.location.href = "/Student_Attendance_Monitoring/HTML/logout.php";
+                window.location.href = "/attendance/HTML/logout.php";
             };
 
             // NO → close modal
@@ -69,7 +69,7 @@ function loadPage(page) {
             try { initLogoutButton(); } catch (err) { console.error('initLogoutButton error', err); }
 
             /* ---------------------------
-               SECTION & YEAR LEVEL BINDINGS
+               SECTION & GRADE LEVEL BINDINGS
             ---------------------------- */
 
             // ADD SECTION
@@ -86,7 +86,7 @@ function loadPage(page) {
                     editSection(
                         btn.dataset.id,
                         btn.dataset.section,
-                        btn.dataset.year
+                        btn.dataset.grade
                     );
                 });
             });
@@ -122,12 +122,12 @@ function loadPage(page) {
                 addStudentForm.addEventListener("submit", submitAddStudentForm);
 
             // LOAD DROPDOWNS ONLY IF FORM EXISTS
-            if (document.getElementById("add-year-level")) {
+            if (document.getElementById("add-grade-level")) {
                 loadStudentDropdowns();
             }
 
             /* ---------------------------
-               CAMERA + RFID MODULE
+               CAMERA MODULE
             ---------------------------- */
 
             const video = document.getElementById("camera-preview");
@@ -135,14 +135,7 @@ function loadPage(page) {
             const canvas = document.getElementById("snapshot-canvas");
             const photoPreview = document.getElementById("photo-preview");
             const photoDataInput = document.getElementById("photo-data");
-            const rfidInput = document.getElementById("rfid-input");
 
-            // Prevent RFID manual typing (Scanner only)
-            if (rfidInput) {
-                rfidInput.addEventListener("keypress", (e) => {
-                    e.preventDefault(); // block keyboard typing
-                });
-            }
 
             // Start camera when modal opens
             if (video) {
@@ -212,16 +205,16 @@ function loadStudentDropdowns() {
         .then(res => {
             if (!res.success) return;
 
-            const yearSel = document.getElementById("add-year-level");
+            const gradeSel = document.getElementById("add-grade-level");
             const secSel = document.getElementById("add-section");
 
-            if (!yearSel || !secSel) return;
+            if (!gradeSel || !secSel) return;
 
-            yearSel.innerHTML = "";
+            gradeSel.innerHTML = "";
             secSel.innerHTML = "";
 
-            res.year_levels.forEach(y => {
-                yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+            res.grade_levels.forEach(g => {
+                gradeSel.innerHTML += `<option value="${g}">${g}</option>`;
             });
 
             res.sections.forEach(s => {
@@ -298,13 +291,13 @@ function submitAddForm(e) {
 }
 
 // OPEN EDIT
-window.editSection = function (id, section, year) {
+window.editSection = function (id, section, grade) {
     const modal = document.getElementById("edit-modal");
     modal.classList.remove("hidden");
 
     document.getElementById("edit-id").value = id;
     document.getElementById("edit-section").value = section;
-    document.getElementById("edit-year-level").value = year;
+    document.getElementById("edit-grade-level").value = grade;
 };
 
 // CLOSE EDIT

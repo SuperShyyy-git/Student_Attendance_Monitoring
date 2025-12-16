@@ -19,7 +19,8 @@ include "../config/db_connect.php";
             <th>First Name</th>
             <th>Middle Name</th>
             <th>Last Name</th>
-            <th>Year Level</th>
+            <th>Address</th>
+            <th>Grade Level</th>
             <th>Section</th>
             <th>Guardian</th>
             <th>Contact Number</th>
@@ -29,7 +30,7 @@ include "../config/db_connect.php";
 
     <tbody>
         <?php
-        $query = "SELECT * FROM students ORDER BY id DESC";
+        $query = "SELECT * FROM students ORDER BY lastname ASC, firstname ASC";
         $result = $conn->query($query);
 
         if ($result->num_rows > 0) {
@@ -42,7 +43,8 @@ include "../config/db_connect.php";
                     <td>{$row['firstname']}</td>
                     <td>{$row['middlename']}</td>
                     <td>{$row['lastname']}</td>
-                    <td>{$row['year_level']}</td>
+                    <td>{$row['address']}</td>
+                    <td>{$row['grade_level']}</td>
                     <td>{$row['section']}</td>
                     <td>{$row['guardian_name']}</td>
                     <td>{$row['guardian_contact']}</td>
@@ -53,7 +55,7 @@ include "../config/db_connect.php";
         } else {
             echo "
             <tr>
-                <td colspan='9' style='text-align:center;'>No students found.</td>
+                <td colspan='10' style='text-align:center;'>No students found.</td>
             </tr>
             ";
         }
@@ -77,9 +79,6 @@ include "../config/db_connect.php";
                 <label>Student Number</label>
                 <input type="text" name="student_id" required>
 
-                <label>RFID Code</label>
-                <input type="text" name="rfid_code" placeholder="Scan RFID here..." required>
-
                 <label>Firstname</label>
                 <input type="text" name="firstname" required>
 
@@ -89,8 +88,11 @@ include "../config/db_connect.php";
                 <label>Lastname</label>
                 <input type="text" name="lastname" required>
 
-                <label>Year Level</label>
-                <select name="year_level" id="add-year-level" required>
+                <label>Address</label>
+                <input type="text" name="address" placeholder="Complete address...">
+
+                <label>Grade Level</label>
+                <select name="grade_level" id="add-grade-level" required>
                     <option value="">Loading...</option>
                 </select>
 
@@ -137,171 +139,228 @@ include "../config/db_connect.php";
 </div>
 </div>
 
-        <!-- PROMPT GUARDIAN MODAL (INSTRUCTION + SMS TEMPLATE) -->
-        <div id="prompt-modal" class="edit-modal hidden">
-            <div class="edit-modal-box">
-                <h3>Prompt Guardian</h3>
-                <p id="prompt-instruction">Use the message below to ask the guardian to open Telegram and send their registered mobile number to the school bot so the system can link their account.</p>
+<!-- PROMPT GUARDIAN MODAL (INSTRUCTION + SMS TEMPLATE) -->
+<div id="prompt-modal" class="edit-modal hidden">
+    <div class="edit-modal-box">
+        <h3>Prompt Guardian</h3>
+        <p id="prompt-instruction">Use the message below to ask the guardian to open Telegram and send their registered
+            mobile number to the school bot so the system can link their account.</p>
 
-                <p><strong>Steps for Guardian</strong></p>
-                <ol>
-                    <li>Open Telegram app.</li>
-                    <li>Search for <strong>@AGSNHS_bot</strong>.</li>
-                    <li>Send the registered mobile number (e.g., <code>09171234567</code>) as a plain message.</li>
-                </ol>
+        <p><strong>Steps for Guardian</strong></p>
+        <ol>
+            <li>Open Telegram app.</li>
+            <li>Search for <strong>@AGSNHS_bot</strong>.</li>
+            <li>Send the registered mobile number (e.g., <code>09171234567</code>) as a plain message.</li>
+        </ol>
 
-                <p><strong>Message to send to the guardian (copy and send as SMS/WhatsApp):</strong></p>
-                <textarea id="prompt-sms" style="width:100%; height:90px; padding:8px;"></textarea>
+        <p><strong>Message to send to the guardian (copy and send as SMS/WhatsApp):</strong></p>
+        <textarea id="prompt-sms" style="width:100%; height:90px; padding:8px;"></textarea>
 
-                <div style="margin-top:10px; display:flex; gap:8px;">
-                    <button id="copy-prompt-sms" class="btn-save-edit">Copy Message</button>
-                    <button id="close-prompt-modal" class="btn-save-edit">Close</button>
-                </div>
-            </div>
+        <div style="margin-top:10px; display:flex; gap:8px;">
+            <button id="copy-prompt-sms" class="btn-save-edit">Copy Message</button>
+            <button id="close-prompt-modal" class="btn-save-edit">Close</button>
         </div>
+    </div>
+</div>
 
-        <style>
-            .header-bar {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 10px 20px 0 20px;
-            }
-            .btn-logout {
-                background: #dc3545;
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 18px;
-                font-weight: 600;
-                cursor: pointer;
-                font-size: 16px;
-                margin-left: 20px;
-            }
-            .btn-logout:hover {
-                background: #b71c1c;
-            }
-            .logout-modal {
-                position: fixed;
-                top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.4);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-            }
-            .logout-modal-box {
-                background: #fff;
-                padding: 28px 32px;
-                border-radius: 10px;
-                box-shadow: 0 2px 16px rgba(0,0,0,0.12);
-                text-align: center;
-                min-width: 320px;
-            }
-            .logout-modal-box h3 {
-                margin-bottom: 18px;
-            }
-            .logout-modal-box .modal-buttons {
-                display: flex;
-                justify-content: center;
-                gap: 18px;
-                margin-top: 18px;
-            }
-            .logout-modal-box button {
-                padding: 8px 22px;
-                border-radius: 6px;
-                border: none;
-                font-weight: 600;
-                font-size: 15px;
-                cursor: pointer;
-            }
-            .logout-modal-box .btn-yes {
-                background: #dc3545;
-                color: #fff;
-            }
-            .logout-modal-box .btn-no {
-                background: #e2e3e5;
-                color: #333;
-            }
-            .status-connected { display:inline-block; padding:6px 10px; background:#d4edda; color:#155724; border-radius:6px; font-weight:600; }
-            .status-not-connected { display:inline-block; padding:6px 10px; background:#f8d7da; color:#721c24; border-radius:6px; font-weight:600; }
-            .btn-prompt { padding:6px 10px; background:#ffcc00; border:none; border-radius:6px; cursor:pointer; }
-            .edit-modal.hidden { display:none; }
-            .edit-modal { position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; }
-            .edit-modal-box { background:white; padding:20px; border-radius:8px; width:520px; max-width:95%; }
-        </style>
+<style>
+    .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px 0 20px;
+    }
 
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // delegate click for prompt buttons
-            document.addEventListener('click', function(e) {
-                if (e.target && e.target.classList.contains('btn-prompt')) {
-                    var contact = e.target.getAttribute('data-contact') || '';
-                    var guardian = e.target.getAttribute('data-guardian') || '';
+    .btn-logout {
+        background: #dc3545;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 18px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 16px;
+        margin-left: 20px;
+    }
 
-                    // Compose SMS message for admin to send to guardian
-                    var msg = "Hello " + guardian + ", please open Telegram and send your registered mobile number to @AGSNHS_bot so the school system can link your account. Your registered number: " + contact + ".";
+    .btn-logout:hover {
+        background: #b71c1c;
+    }
 
-                    var smsEl = document.getElementById('prompt-sms');
-                    var modal = document.getElementById('prompt-modal');
-                    if (smsEl && modal) {
-                        smsEl.value = msg;
-                        modal.classList.remove('hidden');
-                    }
+    .logout-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .logout-modal-box {
+        background: #fff;
+        padding: 28px 32px;
+        border-radius: 10px;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
+        text-align: center;
+        min-width: 320px;
+    }
+
+    .logout-modal-box h3 {
+        margin-bottom: 18px;
+    }
+
+    .logout-modal-box .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 18px;
+        margin-top: 18px;
+    }
+
+    .logout-modal-box button {
+        padding: 8px 22px;
+        border-radius: 6px;
+        border: none;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+    .logout-modal-box .btn-yes {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    .logout-modal-box .btn-no {
+        background: #e2e3e5;
+        color: #333;
+    }
+
+    .status-connected {
+        display: inline-block;
+        padding: 6px 10px;
+        background: #d4edda;
+        color: #155724;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .status-not-connected {
+        display: inline-block;
+        padding: 6px 10px;
+        background: #f8d7da;
+        color: #721c24;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .btn-prompt {
+        padding: 6px 10px;
+        background: #ffcc00;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .edit-modal.hidden {
+        display: none;
+    }
+
+    .edit-modal {
+        position: fixed;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .edit-modal-box {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 520px;
+        max-width: 95%;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // delegate click for prompt buttons
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('btn-prompt')) {
+                var contact = e.target.getAttribute('data-contact') || '';
+                var guardian = e.target.getAttribute('data-guardian') || '';
+
+                // Compose SMS message for admin to send to guardian
+                var msg = "Hello " + guardian + ", please open Telegram and send your registered mobile number to @AGSNHS_bot so the school system can link your account. Your registered number: " + contact + ".";
+
+                var smsEl = document.getElementById('prompt-sms');
+                var modal = document.getElementById('prompt-modal');
+                if (smsEl && modal) {
+                    smsEl.value = msg;
+                    modal.classList.remove('hidden');
                 }
-            });
-
-            var closeBtn = document.getElementById('close-prompt-modal');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function(){
-                    var modal = document.getElementById('prompt-modal');
-                    if (modal) modal.classList.add('hidden');
-                });
-            }
-
-            var copyBtn = document.getElementById('copy-prompt-sms');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', function(){
-                    var el = document.getElementById('prompt-sms');
-                    if (!el) return;
-                    el.select();
-                    try {
-                        document.execCommand('copy');
-                        alert('Message copied to clipboard. Send this to the guardian via SMS or messaging app.');
-                    } catch (err) {
-                        alert('Copy failed. Please select and copy manually.');
-                    }
-                });
-            }
-
-            // Add quick action buttons to open WhatsApp Web or Telegram Web directly (optional)
-            // Create buttons dynamically so we don't show them if elements missing
-            var smsArea = document.getElementById('prompt-sms');
-            if (smsArea) {
-                var actionsDiv = document.createElement('div');
-                actionsDiv.style.marginTop = '8px';
-
-                var waBtn = document.createElement('button');
-                waBtn.textContent = 'Open WhatsApp Web';
-                waBtn.className = 'btn-save-edit';
-                waBtn.style.marginRight = '8px';
-                waBtn.addEventListener('click', function(){
-                    var text = encodeURIComponent(smsArea.value);
-                    // admin will need to enter the guardian's phone when WhatsApp opens
-                    window.open('https://web.whatsapp.com/', '_blank');
-                });
-
-                var tgBtn = document.createElement('button');
-                tgBtn.textContent = 'Open Telegram Web';
-                tgBtn.className = 'btn-save-edit';
-                tgBtn.addEventListener('click', function(){
-                    window.open('https://web.telegram.org/', '_blank');
-                });
-
-                actionsDiv.appendChild(waBtn);
-                actionsDiv.appendChild(tgBtn);
-                smsArea.parentNode.insertBefore(actionsDiv, smsArea.nextSibling);
             }
         });
-        </script>
-        </script>
+
+        var closeBtn = document.getElementById('close-prompt-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                var modal = document.getElementById('prompt-modal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
+
+        var copyBtn = document.getElementById('copy-prompt-sms');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function () {
+                var el = document.getElementById('prompt-sms');
+                if (!el) return;
+                el.select();
+                try {
+                    document.execCommand('copy');
+                    alert('Message copied to clipboard. Send this to the guardian via SMS or messaging app.');
+                } catch (err) {
+                    alert('Copy failed. Please select and copy manually.');
+                }
+            });
+        }
+
+        // Add quick action buttons to open WhatsApp Web or Telegram Web directly (optional)
+        // Create buttons dynamically so we don't show them if elements missing
+        var smsArea = document.getElementById('prompt-sms');
+        if (smsArea) {
+            var actionsDiv = document.createElement('div');
+            actionsDiv.style.marginTop = '8px';
+
+            var waBtn = document.createElement('button');
+            waBtn.textContent = 'Open WhatsApp Web';
+            waBtn.className = 'btn-save-edit';
+            waBtn.style.marginRight = '8px';
+            waBtn.addEventListener('click', function () {
+                var text = encodeURIComponent(smsArea.value);
+                // admin will need to enter the guardian's phone when WhatsApp opens
+                window.open('https://web.whatsapp.com/', '_blank');
+            });
+
+            var tgBtn = document.createElement('button');
+            tgBtn.textContent = 'Open Telegram Web';
+            tgBtn.className = 'btn-save-edit';
+            tgBtn.addEventListener('click', function () {
+                window.open('https://web.telegram.org/', '_blank');
+            });
+
+            actionsDiv.appendChild(waBtn);
+            actionsDiv.appendChild(tgBtn);
+            smsArea.parentNode.insertBefore(actionsDiv, smsArea.nextSibling);
+        }
+    });
+</script>
+</script>
