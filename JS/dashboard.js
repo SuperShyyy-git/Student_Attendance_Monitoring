@@ -86,7 +86,8 @@ function loadPage(page) {
                     editSection(
                         btn.dataset.id,
                         btn.dataset.section,
-                        btn.dataset.grade
+                        btn.dataset.grade,
+                        btn.dataset.adviser
                     );
                 });
             });
@@ -291,13 +292,19 @@ function submitAddForm(e) {
 }
 
 // OPEN EDIT
-window.editSection = function (id, section, grade) {
+window.editSection = function (id, section, grade, adviser) {
     const modal = document.getElementById("edit-modal");
     modal.classList.remove("hidden");
 
     document.getElementById("edit-id").value = id;
     document.getElementById("edit-section").value = section;
     document.getElementById("edit-grade-level").value = grade;
+
+    // Set adviser dropdown if exists
+    const adviserSelect = document.getElementById("edit-adviser");
+    if (adviserSelect) {
+        adviserSelect.value = adviser || '';
+    }
 };
 
 // CLOSE EDIT
@@ -348,7 +355,7 @@ window.deleteSection = function (id) {
 
 window.closePopup = function () {
     const popup = document.getElementById("popup-message-box");
-if (popup) popup.style.display = "none";
+    if (popup) popup.style.display = "none";
 
 };
 

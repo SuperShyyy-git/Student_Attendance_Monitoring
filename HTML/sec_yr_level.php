@@ -104,16 +104,16 @@
     <table class="student-table">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Section</th>
                 <th>Grade Level</th>
+                <th>Adviser</th>
                 <th>Actions</th>
             </tr>
         </thead>
 
         <tbody>
             <?php
-            $query = "SELECT * FROM section_yrlevel ORDER BY id DESC";
+            $query = "SELECT s.*, a.name as adviser_name FROM section_yrlevel s LEFT JOIN advisers a ON s.adviser_id = a.id ORDER BY s.grade_level ASC, s.section ASC";
             $result = $conn->query($query);
 
             if ($result && $result->num_rows > 0) {
@@ -122,15 +122,17 @@
                     $id = (int) $row['id'];
                     $section_display = htmlspecialchars($row['section'], ENT_QUOTES);
                     $grade_display = htmlspecialchars($row['grade_level'], ENT_QUOTES);
+                    $adviser_display = $row['adviser_name'] ? htmlspecialchars($row['adviser_name'], ENT_QUOTES) : '<span style="color:#999">Not assigned</span>';
+                    $adviser_id = $row['adviser_id'] ?? '';
 
                     $section_attr = htmlspecialchars($row['section'], ENT_QUOTES);
                     $grade_attr = htmlspecialchars($row['grade_level'], ENT_QUOTES);
 
                     echo "
                 <tr>
-                    <td>{$id}</td>
                     <td>{$section_display}</td>
                     <td>{$grade_display}</td>
+                    <td>{$adviser_display}</td>
                     <td>
                         <button 
                             type='button'
@@ -138,6 +140,7 @@
                             data-id='{$id}'
                             data-section=\"{$section_attr}\"
                             data-grade=\"{$grade_attr}\"
+                            data-adviser='{$adviser_id}'
                         >
                             <span class='icon'>✏️</span> Edit
                         </button>
@@ -175,6 +178,19 @@
                 <label>Grade Level</label>
                 <input type="text" name="grade_level" required>
 
+                <label>Adviser</label>
+                <select name="adviser_id" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">-- Select Adviser --</option>
+                    <?php
+                    $advisers = $conn->query("SELECT id, name FROM advisers ORDER BY name");
+                    if ($advisers) {
+                        while ($adv = $advisers->fetch_assoc()) {
+                            echo "<option value='{$adv['id']}'>{$adv['name']}</option>";
+                        }
+                    }
+                    ?>
+                </select>
+
                 <div class="modal-buttons">
                     <button type="submit" class="btn-save-edit">Save</button>
                     <button type="button" id="btn-cancel-add-section" class="btn-cancel-edit">Cancel</button>
@@ -184,7 +200,6 @@
 
         </div>
     </div>
-
 
 
     <!-- EDIT MODAL -->
@@ -202,6 +217,19 @@
                 <label>Grade Level</label>
                 <input type="text" id="edit-grade-level" name="grade_level" required>
 
+                <label>Adviser</label>
+                <select id="edit-adviser" name="adviser_id" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">-- Select Adviser --</option>
+                    <?php
+                    $advisers = $conn->query("SELECT id, name FROM advisers ORDER BY name");
+                    if ($advisers) {
+                        while ($adv = $advisers->fetch_assoc()) {
+                            echo "<option value='{$adv['id']}'>{$adv['name']}</option>";
+                        }
+                    }
+                    ?>
+                </select>
+
                 <div class="modal-buttons">
                     <button type="submit" class="btn-save-edit">Save</button>
                     <button type="button" id="btn-cancel-edit" class="btn-cancel-edit">Cancel</button>
@@ -210,8 +238,6 @@
 
         </div>
     </div>
-
-    <script src="sec_yr_level.js"></script>
 
     <script src="sec_yr_level.js"></script>
 

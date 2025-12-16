@@ -10,6 +10,28 @@ include "../config/db_connect.php";
 <!-- ADD STUDENT BUTTON -->
 <button id="btn-open-add-student" class="btn-add-student">➕ Add Student</button>
 
+<!-- SEARCH & FILTER BAR -->
+<div style="display: flex; gap: 15px; margin: 15px 0; align-items: center; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 200px;">
+        <input type="text" id="search-student" placeholder="🔍 Search by name, ID, or section..."
+            style="width: 100%; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+    </div>
+    <div>
+        <select id="filter-grade"
+            style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-width: 150px;">
+            <option value="">All Grade Levels</option>
+            <?php
+            $grades = $conn->query("SELECT DISTINCT grade_level FROM section_yrlevel ORDER BY grade_level");
+            if ($grades) {
+                while ($g = $grades->fetch_assoc()) {
+                    echo "<option value=\"{$g['grade_level']}\">{$g['grade_level']}</option>";
+                }
+            }
+            ?>
+        </select>
+    </div>
+</div>
+
 <hr>
 
 <table class="student-table">
@@ -363,6 +385,39 @@ include "../config/db_connect.php";
             actionsDiv.appendChild(tgBtn);
             smsArea.parentNode.insertBefore(actionsDiv, smsArea.nextSibling);
         }
+
+        // ========================================
+        // SEARCH & FILTER FUNCTIONALITY
+        // ========================================
+        var searchInput = document.getElementById('search-student');
+        var gradeFilter = document.getElementById('filter-grade');
+        var studentTable = document.querySelector('.student-table tbody');
+
+        function filterTable() {
+            if (!studentTable) return;
+            
+            var searchText = searchInput ? searchInput.value.toLowerCase() : '';
+            var gradeValue = gradeFilter ? gradeFilter.value : '';
+            
+            var rows = studentTable.querySelectorAll('tr');
+            
+            rows.forEach(function(row) {
+                var text = row.textContent.toLowerCase();
+                var gradeCell = row.cells[5]; // Grade Level column (index 5)
+                var gradeText = gradeCell ? gradeCell.textContent : '';
+                
+                var matchesSearch = text.indexOf(searchText) !== -1;
+                var matchesGrade = gradeValue === '' || gradeText === gradeValue;
+                
+                row.style.display = (matchesSearch && matchesGrade) ? '' : 'none';
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', filterTable);
+        }
+        if (gradeFilter) {
+            gradeFilter.addEventListener('change', filterTable);
+        }
     });
-</script>
 </script>

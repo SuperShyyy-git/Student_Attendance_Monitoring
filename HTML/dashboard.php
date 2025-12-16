@@ -7,6 +7,7 @@ if (!isset($_SESSION["user_id"])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +19,7 @@ if (!isset($_SESSION["user_id"])) {
     <!-- CSS -->
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../CSS/student_table.css">
-    
+
 
 </head>
 
@@ -38,16 +39,64 @@ if (!isset($_SESSION["user_id"])) {
             cursor: pointer;
             font-size: 16px;
             z-index: 2001;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        .btn-logout:hover { background: #b71c1c; }
-        .logout-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .logout-modal-box { background: #fff; padding: 28px 32px; border-radius: 10px; box-shadow: 0 2px 16px rgba(0,0,0,0.12); text-align: center; min-width: 320px; }
-        .logout-modal-box h3 { margin-bottom: 18px; }
-        .logout-modal-box .modal-buttons { display: flex; justify-content: center; gap: 18px; margin-top: 18px; }
-        .logout-modal-box button { padding: 8px 22px; border-radius: 6px; border: none; font-weight: 600; font-size: 15px; cursor: pointer; }
-        .logout-modal-box .btn-yes { background: #dc3545; color: #fff; }
-        .logout-modal-box .btn-no { background: #e2e3e5; color: #333; }
+
+        .btn-logout:hover {
+            background: #b71c1c;
+        }
+
+        .logout-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .logout-modal-box {
+            background: #fff;
+            padding: 28px 32px;
+            border-radius: 10px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
+            text-align: center;
+            min-width: 320px;
+        }
+
+        .logout-modal-box h3 {
+            margin-bottom: 18px;
+        }
+
+        .logout-modal-box .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .logout-modal-box button {
+            padding: 8px 22px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .logout-modal-box .btn-yes {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .logout-modal-box .btn-no {
+            background: #e2e3e5;
+            color: #333;
+        }
     </style>
 
     <!-- SIDEBAR -->
@@ -75,14 +124,14 @@ if (!isset($_SESSION["user_id"])) {
 
             <li onclick="loadPage('sec_yr_level.php')">
                 <i data-lucide="layers"></i>
-                <span>Section / Year Level</span>
+                <span>Section / Grade Level</span>
             </li>
 
             <li class="menu-title">Attendance Status</li>
 
             <li onclick="loadPage('student-attendance.php')">
-             <i data-lucide="check-circle"></i>
-            <span>Student Attendance</span>
+                <i data-lucide="check-circle"></i>
+                <span>Student Attendance</span>
             </li>
 
 
@@ -148,4 +197,5 @@ if (!isset($_SESSION["user_id"])) {
     </script>
 
 </body>
+
 </html>
