@@ -4,12 +4,16 @@ header("Content-Type: application/json");
 
 
 // =============================================================================
-// 0. REQUIRED FIELDS
+// 0. REQUIRED FIELDS (student_id is now auto-generated)
 // =============================================================================
 
 $required = [
-    'student_id', 'firstname', 'lastname',
-    'grade_level', 'section', 'guardian_name', 'guardian_contact',
+    'firstname',
+    'lastname',
+    'grade_level',
+    'section',
+    'guardian_name',
+    'guardian_contact',
     'photo_data'
 ];
 
@@ -20,6 +24,28 @@ foreach ($required as $field) {
     }
 }
 
+// =============================================================================
+// 0.5 AUTO-GENERATE STUDENT ID (Format: STU-YYYY-XXXX)
+// =============================================================================
+
+$year = date('Y');
+$prefix = "STU-{$year}-";
+
+// Get the last student ID for this year
+$result = $conn->query("SELECT student_id FROM students WHERE student_id LIKE '{$prefix}%' ORDER BY student_id DESC LIMIT 1");
+
+if ($result && $result->num_rows > 0) {
+    $lastId = $result->fetch_assoc()['student_id'];
+    // Extract the number part and increment
+    $lastNum = (int) substr($lastId, -4);
+    $newNum = $lastNum + 1;
+} else {
+    $newNum = 1;
+}
+
+$student_id = $prefix . str_pad($newNum, 4, '0', STR_PAD_LEFT);
+
+
 
 // =============================================================================
 // 1. SAVE BASE64 PHOTO → /uploads/
@@ -28,7 +54,8 @@ foreach ($required as $field) {
 $photoData = $_POST['photo_data'];
 
 $folder = "../uploads/";
-if (!is_dir($folder)) mkdir($folder, 0777, true);
+if (!is_dir($folder))
+    mkdir($folder, 0777, true);
 
 $filename = "student_" . time() . ".png";
 $filepath = $folder . $filename;
@@ -72,7 +99,8 @@ $cmd = "\"$python\" \"$script\" \"$imgFullPath\" 2>&1";
 
 // Prepare debug log
 $logDir = __DIR__ . "/../logs";
-if (!is_dir($logDir)) mkdir($logDir, 0777, true);
+if (!is_dir($logDir))
+    mkdir($logDir, 0777, true);
 $logFile = $logDir . "/python_debug.log";
 
 // Run python
@@ -134,7 +162,7 @@ $encodingJson = json_encode($response["encoding"]);
 // Server-side duplicate check: ensure student_id not already present
 $check = $conn->prepare("SELECT id FROM students WHERE student_id = ? LIMIT 1");
 if ($check) {
-    $check->bind_param('s', $_POST['student_id']);
+    $check->bind_param('s', $student_id);
     $check->execute();
     $checkRes = $check->get_result();
     if ($checkRes && $checkRes->num_rows > 0) {
@@ -154,7 +182,7 @@ $stmt = $conn->prepare("
 
 $stmt->bind_param(
     "sssssssssss",
-    $_POST['student_id'],
+    $student_id,
     $_POST['firstname'],
     $_POST['middlename'],
     $_POST['lastname'],
@@ -221,4 +249,3 @@ if ($stmt->execute()) {
 }
 
 ?>
-

@@ -76,8 +76,10 @@ include "../config/db_connect.php";
             <!-- LEFT SIDE = FORM -->
             <form id="add-student-form" class="student-form">
 
-                <label>Student Number</label>
-                <input type="text" name="student_id" required>
+                <p
+                    style="background: #d4edda; color: #155724; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
+                    📋 Student Number will be auto-generated (e.g., STU-2025-0001)
+                </p>
 
                 <label>Firstname</label>
                 <input type="text" name="firstname" required>
