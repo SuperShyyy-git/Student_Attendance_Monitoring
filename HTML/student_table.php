@@ -44,6 +44,7 @@ include "../config/db_connect.php";
             <th>Address</th>
             <th>Grade Level</th>
             <th>Section</th>
+            <th>Adviser</th>
             <th>Guardian</th>
             <th>Contact Number</th>
             <th>API Status</th>
@@ -52,13 +53,19 @@ include "../config/db_connect.php";
 
     <tbody>
         <?php
-        $query = "SELECT * FROM students ORDER BY lastname ASC, firstname ASC";
+        $query = "SELECT s.*, a.name as adviser_name 
+                  FROM students s
+                  LEFT JOIN section_yrlevel sy ON s.section = sy.section AND s.grade_level = sy.grade_level
+                  LEFT JOIN advisers a ON sy.adviser_id = a.id
+                  ORDER BY s.lastname ASC, s.firstname ASC";
         $result = $conn->query($query);
 
         if ($result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
 
                 $apiStatus = !empty($row['chat_id']) ? '<span class=\'status-connected\'>Connected</span>' : '<span class=\'status-not-connected\'>Not Connected</span>';
+                $adviserName = !empty($row['adviser_name']) ? htmlspecialchars($row['adviser_name']) : '<span style="color:#999">Not assigned</span>';
+
                 echo "
                 <tr>
                     <td>{$row['student_id']}</td>
@@ -68,6 +75,7 @@ include "../config/db_connect.php";
                     <td>{$row['address']}</td>
                     <td>{$row['grade_level']}</td>
                     <td>{$row['section']}</td>
+                    <td>{$adviserName}</td>
                     <td>{$row['guardian_name']}</td>
                     <td>{$row['guardian_contact']}</td>
                     <td>{$apiStatus}</td>
@@ -77,7 +85,7 @@ include "../config/db_connect.php";
         } else {
             echo "
             <tr>
-                <td colspan='10' style='text-align:center;'>No students found.</td>
+                <td colspan='11' style='text-align:center;'>No students found.</td>
             </tr>
             ";
         }
@@ -315,7 +323,7 @@ include "../config/db_connect.php";
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
         // delegate click for prompt buttons
         document.addEventListener('click', function (e) {
             if (e.target && e.target.classList.contains('btn-prompt')) {
@@ -395,20 +403,20 @@ include "../config/db_connect.php";
 
         function filterTable() {
             if (!studentTable) return;
-            
+
             var searchText = searchInput ? searchInput.value.toLowerCase() : '';
             var gradeValue = gradeFilter ? gradeFilter.value : '';
-            
+
             var rows = studentTable.querySelectorAll('tr');
-            
-            rows.forEach(function(row) {
+
+            rows.forEach(function (row) {
                 var text = row.textContent.toLowerCase();
                 var gradeCell = row.cells[5]; // Grade Level column (index 5)
                 var gradeText = gradeCell ? gradeCell.textContent : '';
-                
+
                 var matchesSearch = text.indexOf(searchText) !== -1;
                 var matchesGrade = gradeValue === '' || gradeText === gradeValue;
-                
+
                 row.style.display = (matchesSearch && matchesGrade) ? '' : 'none';
             });
         }
@@ -419,5 +427,5 @@ include "../config/db_connect.php";
         if (gradeFilter) {
             gradeFilter.addEventListener('change', filterTable);
         }
-    });
+    }, 0);
 </script>

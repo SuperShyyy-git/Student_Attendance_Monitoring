@@ -62,6 +62,19 @@ function loadPage(page) {
         .then(html => {
             mainContent.innerHTML = html;
 
+            // Execute any scripts in the loaded content
+            var scripts = mainContent.querySelectorAll('script');
+            scripts.forEach(function (script) {
+                var newScript = document.createElement('script');
+                if (script.src) {
+                    newScript.src = script.src;
+                } else {
+                    newScript.textContent = script.textContent;
+                }
+                document.head.appendChild(newScript);
+                document.head.removeChild(newScript);
+            });
+
             // Recreate icons in the injected fragment (if lucide is available)
             try { if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons(); } catch (err) { /* ignore */ }
 
@@ -183,6 +196,9 @@ function loadPage(page) {
             mainContent.innerHTML = `<p>Error loading page.</p>`;
         });
 }
+
+// Expose loadPage globally so inline scripts in AJAX-loaded pages can use it
+window.loadPage = loadPage;
 
 
 /* -----------------------------------------

@@ -135,7 +135,7 @@ if (!isset($_SESSION["user_id"])) {
             </li>
 
 
-            <li>
+            <li onclick="loadPage('checkin_checkout.php')">
                 <i data-lucide="clock"></i>
                 <span>Check-in / Check-out Time</span>
             </li>
@@ -147,34 +147,34 @@ if (!isset($_SESSION["user_id"])) {
 
             <li class="menu-title">Notifications & Alerts</li>
 
-            <li>
+            <li onclick="loadPage('notification_log.php')">
                 <i data-lucide="message-circle"></i>
                 <span>SMS Notification Log</span>
             </li>
 
-            <li>
+            <li onclick="loadPage('pending_notifications.php')">
                 <i data-lucide="bell"></i>
                 <span>Pending Notifications</span>
             </li>
 
-            <li>
+            <li onclick="loadPage('at_risk_students.php')">
                 <i data-lucide="alert-triangle"></i>
                 <span>At-risk Students</span>
             </li>
 
             <li class="menu-title">Administrative Tools</li>
 
-            <li>
+            <li onclick="loadPage('manual_override.php')">
                 <i data-lucide="switch-camera"></i>
                 <span>Manual Override</span>
             </li>
 
-            <li>
+            <li onclick="loadPage('search_filter.php')">
                 <i data-lucide="search"></i>
                 <span>Search / Filter</span>
             </li>
 
-            <li>
+            <li onclick="loadPage('export_data.php')">
                 <i data-lucide="file-down"></i>
                 <span>Export PDF / Excel</span>
             </li>

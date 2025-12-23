@@ -25,19 +25,38 @@ if ($checkTable->num_rows === 0) {
 // =======================
 //   MAIN QUERY
 // =======================
-$sql = "
-    SELECT 
-        attendance_id,
-        student_name,
-        section,
-        grade_level,
-        attendance_date,
-        attendance_time,
-        status,
-        image_path
-    FROM student_attendance
-    ORDER BY attendance_date DESC, attendance_time DESC
-";
+// Check if image_path column exists
+$columnCheck = $conn->query("SHOW COLUMNS FROM student_attendance LIKE 'image_path'");
+$hasImagePath = $columnCheck && $columnCheck->num_rows > 0;
+
+if ($hasImagePath) {
+    $sql = "
+        SELECT 
+            attendance_id,
+            student_name,
+            section,
+            grade_level,
+            attendance_date,
+            attendance_time,
+            status,
+            image_path
+        FROM student_attendance
+        ORDER BY attendance_date DESC, attendance_time DESC
+    ";
+} else {
+    $sql = "
+        SELECT 
+            attendance_id,
+            student_name,
+            section,
+            grade_level,
+            attendance_date,
+            attendance_time,
+            status
+        FROM student_attendance
+        ORDER BY attendance_date DESC, attendance_time DESC
+    ";
+}
 
 $result = $conn->query($sql);
 
@@ -160,6 +179,9 @@ if (!$result) {
             }
 
             while ($row = $result->fetch_assoc()) {
+                $imageTd = $hasImagePath
+                    ? (isset($row['image_path']) && $row['image_path'] ? "<img src='../uploads/{$row['image_path']}' width='60'>" : "No image")
+                    : "N/A";
                 echo "<tr>
             <td>{$row['attendance_id']}</td>
             <td>{$row['student_name']}</td>
@@ -168,7 +190,7 @@ if (!$result) {
             <td>{$row['attendance_date']}</td>
             <td>{$row['attendance_time']}</td>
             <td>{$row['status']}</td>
-            <td>" . ($row['image_path'] ? "<img src='../uploads/{$row['image_path']}' width='60'>" : "No image") . "</td>
+            <td>{$imageTd}</td>
           </tr>";
             }
             ?>
