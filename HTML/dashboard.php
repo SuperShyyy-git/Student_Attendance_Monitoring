@@ -127,6 +127,11 @@ if (!isset($_SESSION["user_id"])) {
                 <span>Section / Grade Level</span>
             </li>
 
+            <li onclick="loadPage('advisers.php')">
+                <i data-lucide="users"></i>
+                <span>Manage Advisers</span>
+            </li>
+
             <li class="menu-title">Attendance Status</li>
 
             <li onclick="loadPage('student-attendance.php')">
