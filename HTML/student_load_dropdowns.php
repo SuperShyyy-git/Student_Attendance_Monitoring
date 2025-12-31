@@ -2,29 +2,20 @@
 include "../config/db_connect.php";
 header("Content-Type: application/json");
 
+// Load grade levels with sections
+$query = "SELECT grade_level, section FROM section_yrlevel ORDER BY grade_level, section";
+
+$result = $conn->query($query);
 $data = [];
 
-// Load year levels
-$grades = $conn->query("SELECT DISTINCT grade_level FROM section_yrlevel ORDER BY grade_level");
-$grade_list = [];
-if ($grades) {
-    while ($g = $grades->fetch_assoc()) {
-        $grade_list[] = $g['grade_level'];
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $data[] = [
+            'grade_level' => $row['grade_level'],
+            'section' => $row['section']
+        ];
     }
 }
 
-// Load sections
-$sections = $conn->query("SELECT DISTINCT section FROM section_yrlevel ORDER BY section");
-$section_list = [];
-if ($sections) {
-    while ($s = $sections->fetch_assoc()) {
-        $section_list[] = $s['section'];
-    }
-}
-
-echo json_encode([
-    "success" => true,
-    "grade_levels" => $grade_list,
-    "sections" => $section_list
-]);
+echo json_encode($data);
 ?>

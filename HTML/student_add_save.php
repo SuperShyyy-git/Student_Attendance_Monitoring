@@ -176,12 +176,15 @@ if ($check) {
 $stmt = $conn->prepare("
     INSERT INTO students 
     (student_id, firstname, middlename, lastname, address, grade_level, section,
-     guardian_name, guardian_contact, photo_path, face_encoding)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+     guardian_name, guardian_contact, guardian_email, photo_path, face_encoding)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
 ");
 
+// Get guardian_email from POST, default to empty if not provided
+$guardian_email = isset($_POST['guardian_email']) ? trim($_POST['guardian_email']) : '';
+
 $stmt->bind_param(
-    "sssssssssss",
+    "ssssssssssss",
     $student_id,
     $_POST['firstname'],
     $_POST['middlename'],
@@ -191,59 +194,13 @@ $stmt->bind_param(
     $_POST['section'],
     $_POST['guardian_name'],
     $_POST['guardian_contact'],
+    $guardian_email,
     $savePathForDB,
     $encodingJson
 );
 
 if ($stmt->execute()) {
-    // After inserting student, attempt to reconcile any previously-received guardian messages
-    $newStudentId = $_POST['student_id'];
-    $guardianContact = preg_replace('/[^0-9+]/', '', $_POST['guardian_contact']);
-    // normalize +63 -> 0
-    if (preg_match('/^\+63[0-9]{9}$/', $guardianContact)) {
-        $guardianContact = '0' . substr($guardianContact, 3);
-    }
-
-    // Look for unprocessed telegram_inbox entries matching this guardian contact
-    // Skip reconciliation if the `telegram_inbox` table does not exist (prevents fatal on restored DB)
-    $tableCheck = $conn->query("SHOW TABLES LIKE 'telegram_inbox'");
-    if ($tableCheck && $tableCheck->num_rows > 0) {
-        $find = $conn->prepare("SELECT chat_id, update_id FROM telegram_inbox WHERE phone_normalized = ? AND processed = 0 ORDER BY received_at DESC LIMIT 1");
-        if ($find) {
-            $find->bind_param('s', $guardianContact);
-            $find->execute();
-            $res = $find->get_result();
-            if ($res && $res->num_rows > 0) {
-                $row = $res->fetch_assoc();
-                $foundChat = $row['chat_id'];
-                $foundUpdate = $row['update_id'];
-
-                if (!empty($foundChat)) {
-                    // assign chat_id to all students with this guardian contact that are missing chat_id
-                    $upd = $conn->prepare("UPDATE students SET chat_id = ? WHERE guardian_contact = ? AND (chat_id IS NULL OR chat_id = '')");
-                    if ($upd) {
-                        $upd->bind_param('ss', $foundChat, $guardianContact);
-                        $upd->execute();
-                        $upd->close();
-                    }
-
-                    // mark telegram_inbox processed
-                    $mark = $conn->prepare("UPDATE telegram_inbox SET processed = 1, processed_at = NOW() WHERE update_id = ?");
-                    if ($mark) {
-                        $mark->bind_param('i', $foundUpdate);
-                        $mark->execute();
-                        $mark->close();
-                    }
-                }
-            }
-            $find->close();
-        }
-    } else {
-        // Table not present — skip automatic chat_id reconciliation
-        error_log('[STUDENT_ADD_SAVE] telegram_inbox table not found; skipping chat_id reconciliation');
-    }
-
-    echo json_encode(["success" => true, "message" => "Student registered successfully", "student_id" => $_POST['student_id']]);
+    echo json_encode(["success" => true, "message" => "Student registered successfully", "student_id" => $student_id]);
 } else {
     echo json_encode(["success" => false, "message" => "Database error: " . $stmt->error, "sql_error" => $conn->error]);
 }

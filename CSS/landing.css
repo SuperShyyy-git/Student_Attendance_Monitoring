@@ -1,0 +1,244 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Full Screen Center */
+body {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f2f4f7;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* Main Container */
+.landing-container {
+  text-align: center;
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Header Section */
+.header-section {
+  margin-bottom: 40px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logo-container {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 5px solid #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: #fff;
+}
+
+.logo-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-section h1 {
+  font-size: 28px;
+  color: #1f2937;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.header-section p {
+  font-size: 16px;
+  color: #6b7280;
+}
+
+/* Cards Container */
+.cards-container {
+  display: flex;
+  gap: 25px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Big Option Card */
+.option-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 30px;
+  width: 320px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 3px solid transparent;
+  animation: floatUp 0.5s ease backwards;
+}
+
+.option-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.option-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.option-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.option-card.admin:hover {
+  border-color: #3b82f6;
+}
+
+.option-card.student:hover {
+  border-color: #10b981;
+}
+
+.option-card:active {
+  transform: translateY(-4px) scale(0.98);
+}
+
+/* Large Icon */
+.card-icon {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 25px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.option-card:hover .card-icon {
+  transform: scale(1.1);
+}
+
+.option-card.admin .card-icon {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+}
+
+.option-card.student .card-icon {
+  background: linear-gradient(135deg, #10b981, #34d399);
+}
+
+.card-icon svg {
+  width: 50px;
+  height: 50px;
+  fill: #fff;
+}
+
+/* Card Title */
+.option-card h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+/* Card Description */
+.option-card p {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+/* Action Button */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.option-card.admin .action-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.option-card.student .action-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.option-card:hover .action-btn {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  transition: transform 0.3s ease;
+}
+
+.option-card:hover .action-btn svg {
+  transform: translateX(4px);
+}
+
+/* Footer */
+.footer {
+  margin-top: 40px;
+  font-size: 13px;
+  color: #9ca3af;
+  animation: fadeIn 0.5s ease 0.4s backwards;
+}
+
+/* Responsive - Stack on mobile */
+@media (max-width: 700px) {
+  .cards-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .option-card {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .header-section h1 {
+    font-size: 24px;
+  }
+
+  .logo-container {
+    width: 100px;
+    height: 100px;
+  }
+}

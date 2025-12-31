@@ -35,10 +35,6 @@ if ($result->num_rows === 1) {
                 header("Location: teacher_dashboard.php");
                 exit;
 
-            case "machine":
-                header("Location: attendance_capture.php");
-                exit;
-
             default:
                 // fallback
                 header("Location: dashboard.php");

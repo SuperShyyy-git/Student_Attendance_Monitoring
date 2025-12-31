@@ -187,11 +187,8 @@ $recentAttendance = $conn->query("SELECT attendance_id, student_name, section, a
                             onclick="showEditModal(<?php echo $row['attendance_id']; ?>, '<?php echo $row['status']; ?>', '<?php echo $row['attendance_time']; ?>')"
                             class="btn-add-student"
                             style="background: #f39c12; padding: 6px 12px; font-size: 12px;">✏️</button>
-                        <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this record?');">
-                            <input type="hidden" name="attendance_id" value="<?php echo $row['attendance_id']; ?>">
-                            <button type="submit" name="delete_attendance" class="btn-add-student"
-                                style="background: #e74c3c; padding: 6px 12px; font-size: 12px;">🗑️</button>
-                        </form>
+                        <button onclick="deleteAttendance(<?php echo $row['attendance_id']; ?>)" class="btn-add-student"
+                            style="background: #e74c3c; padding: 6px 12px; font-size: 12px;">🗑️</button>
                     </td>
                 </tr>
             <?php endwhile; ?>
@@ -367,5 +364,36 @@ $recentAttendance = $conn->query("SELECT attendance_id, student_name, section, a
             });
 
         return false; // Prevent form submission
+    };
+
+    // Delete attendance record via AJAX
+    window.deleteAttendance = function(attendanceId) {
+        if (!confirm('Delete this attendance record?')) {
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('attendance_id', attendanceId);
+        formData.append('delete_attendance', '1');
+
+        fetch('manual_override.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(function (response) { return response.text(); })
+            .then(function (html) {
+                // Reload the page to show success
+                if (window.loadPage) {
+                    window.loadPage('manual_override.php');
+                } else {
+                    var contentArea = document.getElementById('main-content');
+                    if (contentArea) {
+                        contentArea.innerHTML = html;
+                    }
+                }
+            })
+            .catch(function (err) {
+                alert('Error deleting record: ' + err.message);
+            });
     };
 </script>

@@ -118,8 +118,8 @@ if (!isset($_SESSION["user_id"])) {
             <li class="menu-title">Student Information Panel</li>
 
             <li onclick="loadPage('student_table.php')">
-                <i data-lucide="user"></i>
-                <span>Student Name / ID</span>
+                <i data-lucide="users"></i>
+                <span>Student Management</span>
             </li>
 
             <li onclick="loadPage('sec_yr_level.php')">
@@ -150,22 +150,6 @@ if (!isset($_SESSION["user_id"])) {
                 <span>Attendance History</span>
             </li>
 
-            <li class="menu-title">Notifications & Alerts</li>
-
-            <li onclick="loadPage('notification_log.php')">
-                <i data-lucide="message-circle"></i>
-                <span>SMS Notification Log</span>
-            </li>
-
-            <li onclick="loadPage('pending_notifications.php')">
-                <i data-lucide="bell"></i>
-                <span>Pending Notifications</span>
-            </li>
-
-            <li onclick="loadPage('at_risk_students.php')">
-                <i data-lucide="alert-triangle"></i>
-                <span>At-risk Students</span>
-            </li>
 
             <li class="menu-title">Administrative Tools</li>
 

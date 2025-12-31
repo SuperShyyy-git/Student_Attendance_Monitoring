@@ -141,7 +141,7 @@ function loadPage(page) {
             }
 
             /* ---------------------------
-               CAMERA MODULE
+               CAMERA MODULE WITH FACE DETECTION
             ---------------------------- */
 
             const video = document.getElementById("camera-preview");
@@ -149,18 +149,160 @@ function loadPage(page) {
             const canvas = document.getElementById("snapshot-canvas");
             const photoPreview = document.getElementById("photo-preview");
             const photoDataInput = document.getElementById("photo-data");
+            const faceOverlayCanvas = document.getElementById("face-overlay-canvas");
+            const faceBadge = document.getElementById("face-badge");
+            const faceLoading = document.getElementById("face-loading");
 
+            let faceDetectionInterval = null;
 
             // Start camera when modal opens
             if (video) {
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(stream => video.srcObject = stream)
-                    .catch(err => console.log("Camera error:", err));
+                navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
+                    .then(stream => {
+                        video.srcObject = stream;
+
+                        // Start face detection after video is playing
+                        video.onloadedmetadata = () => {
+                            startFaceDetection();
+                        };
+                    })
+                    .catch(err => {
+                        console.log("Camera error:", err);
+                        if (faceLoading) faceLoading.textContent = 'Camera error';
+                    });
             }
 
-            // Capture photo
+            // Face detection function
+            async function startFaceDetection() {
+                if (!faceOverlayCanvas || !video) return;
+
+                // Check if face-api is loaded
+                if (typeof faceapi === 'undefined') {
+                    if (faceLoading) faceLoading.textContent = 'Loading face detection...';
+                    // Load face-api.js dynamically
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js';
+                    script.onload = async () => {
+                        await loadFaceModels();
+                    };
+                    document.head.appendChild(script);
+                    return;
+                }
+
+                await loadFaceModels();
+            }
+
+            async function loadFaceModels() {
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+
+                // Add timeout
+                const timeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout')), 10000)
+                );
+
+                try {
+                    await Promise.race([
+                        Promise.all([
+                            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
+                        ]),
+                        timeout
+                    ]);
+
+                    if (faceLoading) faceLoading.textContent = 'Face detection ready ✓';
+
+                    // Start detection loop
+                    runFaceDetectionLoop();
+                } catch (error) {
+                    console.error('Face model load error:', error);
+                    if (faceLoading) faceLoading.textContent = '';
+                    if (faceBadge) faceBadge.style.display = 'none';
+                }
+            }
+
+            function runFaceDetectionLoop() {
+                if (!faceOverlayCanvas || !video) return;
+
+                faceOverlayCanvas.width = 320;
+                faceOverlayCanvas.height = 240;
+                const ctx = faceOverlayCanvas.getContext('2d');
+
+                faceDetectionInterval = setInterval(async () => {
+                    if (typeof faceapi === 'undefined') return;
+
+                    try {
+                        const detections = await faceapi.detectAllFaces(
+                            video,
+                            new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 })
+                        ).withFaceLandmarks();
+
+                        ctx.clearRect(0, 0, faceOverlayCanvas.width, faceOverlayCanvas.height);
+
+                        const scaleX = 320 / video.videoWidth;
+                        const scaleY = 240 / video.videoHeight;
+
+                        if (detections.length > 0 && faceBadge) {
+                            faceBadge.textContent = '✓ Face OK';
+                            faceBadge.className = 'face-status-badge face-ok';
+
+                            detections.forEach(detection => {
+                                const points = detection.landmarks.positions;
+
+                                // Draw mesh
+                                ctx.strokeStyle = '#FFD700';
+                                ctx.fillStyle = '#FFD700';
+                                ctx.lineWidth = 1;
+
+                                points.forEach(p => {
+                                    ctx.beginPath();
+                                    ctx.arc(p.x * scaleX, p.y * scaleY, 1.5, 0, 2 * Math.PI);
+                                    ctx.fill();
+                                });
+
+                                // Jawline
+                                drawMeshPath(ctx, points, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], scaleX, scaleY);
+                                // Eyebrows
+                                drawMeshPath(ctx, points, [17, 18, 19, 20, 21], scaleX, scaleY);
+                                drawMeshPath(ctx, points, [22, 23, 24, 25, 26], scaleX, scaleY);
+                                // Nose
+                                drawMeshPath(ctx, points, [27, 28, 29, 30], scaleX, scaleY);
+                                // Eyes
+                                drawMeshPath(ctx, points, [36, 37, 38, 39, 40, 41, 36], scaleX, scaleY);
+                                drawMeshPath(ctx, points, [42, 43, 44, 45, 46, 47, 42], scaleX, scaleY);
+                                // Mouth
+                                drawMeshPath(ctx, points, [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 48], scaleX, scaleY);
+
+                                // Face box
+                                const box = detection.detection.box;
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(box.x * scaleX, box.y * scaleY, box.width * scaleX, box.height * scaleY);
+                            });
+                        } else if (faceBadge) {
+                            faceBadge.textContent = '✗ No Face';
+                            faceBadge.className = 'face-status-badge no-face';
+                        }
+                    } catch (e) { /* ignore */ }
+                }, 150);
+            }
+
+            function drawMeshPath(ctx, points, indices, scaleX, scaleY) {
+                ctx.beginPath();
+                ctx.moveTo(points[indices[0]].x * scaleX, points[indices[0]].y * scaleY);
+                for (let i = 1; i < indices.length; i++) {
+                    ctx.lineTo(points[indices[i]].x * scaleX, points[indices[i]].y * scaleY);
+                }
+                ctx.stroke();
+            }
+
+            // Capture photo - only when face is detected (or face detection is disabled)
             if (captureBtn) {
                 captureBtn.onclick = () => {
+                    // Check if face is detected (allow if badge is hidden/doesn't exist)
+                    if (faceBadge && faceBadge.style.display !== 'none' && faceBadge.classList.contains('no-face')) {
+                        alert('Please make sure your face is visible in the camera before capturing.');
+                        return;
+                    }
+
                     const context = canvas.getContext("2d");
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -215,29 +357,84 @@ function closeAddStudentModal() {
     document.getElementById("add-student-modal").classList.add("hidden");
 }
 
+// Global variable to store section data with advisers
+let sectionDataGlobal = [];
+
 // LOAD DROPDOWNS
 function loadStudentDropdowns() {
     fetch('./student_load_dropdowns.php')
         .then(r => r.json())
-        .then(res => {
-            if (!res.success) return;
+        .then(data => {
+            // Data is a flat array: [{grade_level, section, adviser}, ...]
+            sectionDataGlobal = data;
 
             const gradeSel = document.getElementById("add-grade-level");
             const secSel = document.getElementById("add-section");
+            const adviserDisplay = document.getElementById("adviser-display");
 
             if (!gradeSel || !secSel) return;
 
-            gradeSel.innerHTML = "";
-            secSel.innerHTML = "";
+            // Get unique grade levels
+            const uniqueGrades = [...new Set(data.map(item => item.grade_level))];
 
-            res.grade_levels.forEach(g => {
+            // Populate grade levels
+            gradeSel.innerHTML = '<option value="">Select Grade Level</option>';
+            uniqueGrades.forEach(g => {
                 gradeSel.innerHTML += `<option value="${g}">${g}</option>`;
             });
 
-            res.sections.forEach(s => {
-                secSel.innerHTML += `<option value="${s}">${s}</option>`;
-            });
-        });
+            // Reset section
+            secSel.innerHTML = '<option value="">Select Grade First</option>';
+            if (adviserDisplay) {
+                adviserDisplay.textContent = '👤 Select grade level and section first';
+                adviserDisplay.style.color = '#666';
+                adviserDisplay.style.background = '#f8f9fa';
+            }
+
+            // Grade change event
+            gradeSel.onchange = function () {
+                const selectedGrade = this.value;
+                secSel.innerHTML = '<option value="">Select Section</option>';
+                if (adviserDisplay) {
+                    adviserDisplay.textContent = '👤 Select section to see adviser';
+                    adviserDisplay.style.color = '#666';
+                    adviserDisplay.style.background = '#f8f9fa';
+                }
+
+                if (selectedGrade) {
+                    const sections = sectionDataGlobal.filter(item => item.grade_level === selectedGrade);
+                    sections.forEach(item => {
+                        secSel.innerHTML += `<option value="${item.section}">${item.section}</option>`;
+                    });
+                }
+            };
+
+            // Section change event - show adviser
+            secSel.onchange = function () {
+                const selectedGrade = gradeSel.value;
+                const selectedSection = this.value;
+
+                if (adviserDisplay && selectedGrade && selectedSection) {
+                    const sectionInfo = sectionDataGlobal.find(item =>
+                        item.grade_level === selectedGrade && item.section === selectedSection
+                    );
+                    if (sectionInfo && sectionInfo.adviser && sectionInfo.adviser !== 'Not assigned') {
+                        adviserDisplay.innerHTML = '👨‍🏫 <strong>' + sectionInfo.adviser + '</strong>';
+                        adviserDisplay.style.color = '#155724';
+                        adviserDisplay.style.background = '#d4edda';
+                    } else {
+                        adviserDisplay.textContent = '⚠️ No adviser assigned';
+                        adviserDisplay.style.color = '#856404';
+                        adviserDisplay.style.background = '#fff3cd';
+                    }
+                } else if (adviserDisplay) {
+                    adviserDisplay.textContent = '👤 Select section to see adviser';
+                    adviserDisplay.style.color = '#666';
+                    adviserDisplay.style.background = '#f8f9fa';
+                }
+            };
+        })
+        .catch(err => console.error('Error loading dropdowns:', err));
 }
 
 // SUBMIT ADD STUDENT

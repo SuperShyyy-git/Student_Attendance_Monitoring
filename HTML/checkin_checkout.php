@@ -40,21 +40,15 @@ $result = $stmt->get_result();
 // Calculate stats
 $totalStudents = 0;
 $presentCount = 0;
-$lateCount = 0;
 $absentCount = 0;
-$lateThreshold = '08:00:00';
 
 $students = [];
 while ($row = $result->fetch_assoc()) {
     $students[] = $row;
     $totalStudents++;
-    
+
     if ($row['time_in']) {
-        if ($row['time_in'] > $lateThreshold) {
-            $lateCount++;
-        } else {
-            $presentCount++;
-        }
+        $presentCount++;
     } else {
         $absentCount++;
     }
@@ -64,7 +58,8 @@ while ($row = $result->fetch_assoc()) {
 <div class="header-bar">
     <h2 class='table-title'>⏰ Check-in / Check-out Time</h2>
     <div style="display: flex; align-items: center; gap: 15px;">
-        <span style="background: #3498db; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">
+        <span
+            style="background: #3498db; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">
             <?php echo date('F d, Y'); ?>
         </span>
         <button id="btn-logout" class="btn-logout">Logout</button>
@@ -81,15 +76,13 @@ while ($row = $result->fetch_assoc()) {
 
 <!-- STATS ROW -->
 <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-    <div style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #27ae60;">
+    <div
+        style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #27ae60;">
         <div style="font-size: 24px; font-weight: 700; color: #27ae60;"><?php echo $presentCount; ?></div>
-        <div style="font-size: 12px; color: #7f8c8d;">On Time</div>
+        <div style="font-size: 12px; color: #7f8c8d;">Present</div>
     </div>
-    <div style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #f39c12;">
-        <div style="font-size: 24px; font-weight: 700; color: #f39c12;"><?php echo $lateCount; ?></div>
-        <div style="font-size: 12px; color: #7f8c8d;">Late</div>
-    </div>
-    <div style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #e74c3c;">
+    <div
+        style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #e74c3c;">
         <div style="font-size: 24px; font-weight: 700; color: #e74c3c;"><?php echo $absentCount; ?></div>
         <div style="font-size: 12px; color: #7f8c8d;">No Record</div>
     </div>
@@ -111,23 +104,22 @@ while ($row = $result->fetch_assoc()) {
     </thead>
     <tbody>
         <?php if (count($students) === 0): ?>
-            <tr><td colspan="7" style="text-align:center; padding: 40px; color: #7f8c8d;">No students found.</td></tr>
+            <tr>
+                <td colspan="7" style="text-align:center; padding: 40px; color: #7f8c8d;">No students found.</td>
+            </tr>
         <?php else: ?>
-            <?php foreach ($students as $row): 
+            <?php foreach ($students as $row):
                 $timeIn = $row['time_in'];
                 $timeOut = $row['time_out'];
-                
+
                 if (!$timeIn) {
                     $status = 'No Record';
                     $statusClass = 'status-not-connected';
-                } elseif ($timeIn > $lateThreshold) {
-                    $status = 'Late';
-                    $statusClass = 'status-warning';
                 } else {
                     $status = 'Present';
                     $statusClass = 'status-connected';
                 }
-            ?>
+                ?>
                 <tr>
                     <td><?php echo htmlspecialchars($row['student_id'] ?? 'N/A'); ?></td>
                     <td><?php echo htmlspecialchars($row['student_name']); ?></td>
@@ -165,7 +157,9 @@ while ($row = $result->fetch_assoc()) {
         font-size: 16px;
     }
 
-    .btn-logout:hover { background: #b71c1c; }
+    .btn-logout:hover {
+        background: #b71c1c;
+    }
 
     .student-table {
         width: 100%;
@@ -173,7 +167,7 @@ while ($row = $result->fetch_assoc()) {
         background: white;
         border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     }
 
     .student-table th {
@@ -191,7 +185,9 @@ while ($row = $result->fetch_assoc()) {
         font-size: 14px;
     }
 
-    .student-table tr:hover { background: #f8f9fa; }
+    .student-table tr:hover {
+        background: #f8f9fa;
+    }
 
     .status-connected {
         display: inline-block;
@@ -225,10 +221,10 @@ while ($row = $result->fetch_assoc()) {
 </style>
 
 <script>
-    document.getElementById('search-checkin').addEventListener('input', function() {
+    document.getElementById('search-checkin').addEventListener('input', function () {
         var searchText = this.value.toLowerCase();
         var rows = document.querySelectorAll('.student-table tbody tr');
-        rows.forEach(function(row) {
+        rows.forEach(function (row) {
             var text = row.textContent.toLowerCase();
             row.style.display = text.indexOf(searchText) !== -1 ? '' : 'none';
         });
