@@ -153,8 +153,9 @@ include "../config/db_connect.php";
                 <label>Guardian's Email (for notifications)</label>
                 <input type="email" name="guardian_email" placeholder="parent@email.com" required>
 
-                <!-- Hidden input for Base64 Image -->
+                <!-- Hidden input for Base64 Image and Face Encoding -->
                 <input type="hidden" name="photo_data" id="photo-data">
+                <input type="hidden" name="face_encoding" id="face-encoding">
 
                 <div class="modal-buttons">
                     <button type="submit" class="btn-save-edit">Save</button>
@@ -168,21 +169,21 @@ include "../config/db_connect.php";
 
                 <h4>📷 Student Photo</h4>
 
-                <div class="camera-preview-wrapper" style="position: relative; display: inline-block;">
+                <div class="camera-preview-wrapper" style="position: relative; display: inline-block; border-radius: 12px; overflow: hidden; background: #1f2937;">
                     <video id="camera-preview" autoplay
-                        style="width: 320px; height: 240px; border-radius: 8px; transform: scaleX(-1);"></video>
-                    <canvas id="face-overlay-canvas" width="320" height="240"
+                        style="width: 480px; height: 360px; border-radius: 8px; transform: scaleX(-1); display: block;"></video>
+                    <canvas id="face-overlay-canvas" width="480" height="360"
                         style="position: absolute; top: 0; left: 0; pointer-events: none; transform: scaleX(-1);"></canvas>
                     <div id="face-badge" class="face-status-badge no-face">👤 No Face</div>
                 </div>
 
-                <button type="button" id="capture-btn" class="btn-save-edit" style="margin-top:10px;">
+                <button type="button" id="capture-btn" class="btn-save-edit" style="margin-top:10px; width: 480px;">
                     📷 Capture Photo
                 </button>
 
                 <canvas id="snapshot-canvas" width="480" height="360" style="display:none;"></canvas>
 
-                <img id="photo-preview" style="display:none; margin-top:10px; max-width: 320px; border-radius: 8px;">
+                <img id="photo-preview" style="display:none; margin-top:10px; max-width: 480px; border-radius: 8px;">
 
             </div>
 
@@ -509,8 +510,10 @@ include "../config/db_connect.php";
     }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+
 <script>
-    setTimeout(function () {
+    (function () {
         // ========================================
         // SEARCH & FILTER FUNCTIONALITY
         // ========================================
@@ -532,28 +535,19 @@ include "../config/db_connect.php";
                 var gradeText = gradeCell ? gradeCell.textContent.trim() : '';
 
                 var matchesSearch = searchText === '' || text.indexOf(searchText) !== -1;
-                // Use includes for flexible matching (e.g., "10" matches "Grade 10")
                 var matchesGrade = gradeValue === '' || gradeText.includes(gradeValue);
-
                 row.style.display = (matchesSearch && matchesGrade) ? '' : 'none';
             });
         }
 
-        if (searchInput) {
-            searchInput.addEventListener('input', filterTable);
-        }
-        if (gradeFilter) {
-            gradeFilter.addEventListener('change', filterTable);
-        }
+        if (searchInput) searchInput.addEventListener('input', filterTable);
+        if (gradeFilter) gradeFilter.addEventListener('change', filterTable);
 
-        // Guardian contact number validation - only allow numbers
+        // Guardian contact number validation
         var guardianContact = document.getElementById('guardian-contact');
         if (guardianContact) {
             guardianContact.addEventListener('input', function (e) {
-                // Remove any non-digit characters
                 this.value = this.value.replace(/[^0-9]/g, '');
-
-                // Validate format
                 if (this.value.length > 0 && !this.value.startsWith('09')) {
                     this.setCustomValidity('Number must start with 09');
                 } else if (this.value.length > 0 && this.value.length !== 11) {
@@ -565,125 +559,120 @@ include "../config/db_connect.php";
         }
 
         // ========================================
-        // FACE DETECTION FOR ADD STUDENT CAMERA
+        // FACE DETECTION & CAMERA
         // ========================================
         let faceModelsLoaded = false;
         let faceDetectionInterval = null;
+        let registeredStudents = [];
 
         async function loadFaceModels() {
             const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
             const loadingEl = document.getElementById('face-loading');
             const captureBtn = document.getElementById('capture-btn');
-
             try {
                 if (typeof faceapi === 'undefined') {
                     setTimeout(loadFaceModels, 500);
                     return;
                 }
-
                 await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
                 await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-
+                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
                 faceModelsLoaded = true;
                 if (loadingEl) loadingEl.textContent = 'Face detection ready';
                 if (captureBtn) captureBtn.disabled = false;
+                
+                // Load existing students for duplicate detection
+                loadRegisteredStudents();
             } catch (error) {
                 console.error('Error loading face models:', error);
-                if (loadingEl) loadingEl.textContent = 'Face detection failed to load';
-                if (captureBtn) captureBtn.disabled = false;
             }
         }
+
+        async function loadRegisteredStudents() {
+            try {
+                const response = await fetch('get_face_encodings.php');
+                const data = await response.json();
+                if (data.success && data.students) {
+                    registeredStudents = data.students;
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+
+        function findBestMatch(capturedDescriptor) {
+            if (!registeredStudents.length) return null;
+            let bestMatch = null;
+            let minDistance = 0.6; // Threshold for matching
+
+            registeredStudents.forEach(student => {
+                const distance = faceapi.euclideanDistance(capturedDescriptor, student.encoding);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestMatch = { student, distance };
+                }
+            });
+            return bestMatch;
+        }
+
+        let isCapturing = false;
 
         function startFaceDetectionForRegistration() {
             const video = document.getElementById('camera-preview');
             const overlayCanvas = document.getElementById('face-overlay-canvas');
             const faceBadge = document.getElementById('face-badge');
-            const captureBtn = document.getElementById('capture-btn');
-
             if (!video || !overlayCanvas || !faceModelsLoaded) return;
 
-            overlayCanvas.width = 320;
-            overlayCanvas.height = 240;
+            overlayCanvas.width = 480;
+            overlayCanvas.height = 360;
             const ctx = overlayCanvas.getContext('2d');
 
-            // Triangular mesh connections for professional look
-            const MESH_TRIANGLES = [
-                // Forehead
-                [17, 18, 36], [18, 36, 37], [18, 19, 37], [19, 37, 38], [19, 20, 38], [20, 38, 39], [20, 21, 39],
-                [21, 39, 27], [22, 27, 42], [22, 42, 43], [22, 23, 43], [23, 43, 44], [23, 24, 44], [24, 44, 45],
-                [24, 25, 45], [25, 45, 46], [25, 26, 46],
-                // Eyes
-                [36, 37, 41], [37, 38, 40], [37, 40, 41], [38, 39, 40],
-                [42, 43, 47], [43, 44, 46], [43, 46, 47], [44, 45, 46],
-                // Nose
-                [27, 28, 39], [27, 28, 42], [28, 29, 39], [28, 29, 42],
-                [29, 30, 31], [29, 30, 35], [30, 31, 32], [30, 32, 33], [30, 33, 34], [30, 34, 35],
-                // Cheeks
-                [0, 1, 36], [1, 36, 41], [1, 2, 41], [2, 41, 31], [2, 3, 31], [3, 31, 48], [3, 4, 48],
-                [16, 15, 45], [15, 45, 46], [15, 14, 46], [14, 46, 35], [14, 13, 35], [13, 35, 54], [13, 12, 54],
-                // Mouth
-                [48, 49, 60], [49, 50, 60], [50, 60, 61], [50, 51, 61], [51, 61, 62], [51, 52, 62],
-                [52, 62, 63], [52, 53, 63], [53, 63, 64], [53, 54, 64],
-                // Chin
-                [4, 5, 48], [5, 6, 48], [6, 48, 59], [6, 7, 59], [7, 8, 59],
-                [12, 11, 54], [11, 10, 54], [10, 54, 55], [10, 9, 55], [9, 8, 55]
-            ];
-
             faceDetectionInterval = setInterval(async () => {
-                if (!faceModelsLoaded) return;
-
+                if (!faceModelsLoaded || isCapturing) return;
                 try {
-                    const detections = await faceapi.detectAllFaces(
-                        video,
-                        new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
-                    ).withFaceLandmarks();
-
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 })).withFaceLandmarks();
                     ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-                    const scaleX = 320 / video.videoWidth;
-                    const scaleY = 240 / video.videoHeight;
+                    const scaleX = 480 / video.videoWidth;
+                    const scaleY = 360 / video.videoHeight;
 
                     if (detections.length > 0) {
                         faceBadge.textContent = '✓ Face Detected';
                         faceBadge.className = 'face-status-badge face-ok';
+                        
+                        // Auto-scan disabled as per user request
 
                         detections.forEach(detection => {
                             const pts = detection.landmarks.positions;
-
-                            // Draw triangular mesh
-                            ctx.strokeStyle = 'rgba(255, 200, 100, 0.6)';
-                            ctx.lineWidth = 1;
-
-                            MESH_TRIANGLES.forEach(tri => {
-                                if (pts[tri[0]] && pts[tri[1]] && pts[tri[2]]) {
-                                    ctx.beginPath();
-                                    ctx.moveTo(pts[tri[0]].x * scaleX, pts[tri[0]].y * scaleY);
-                                    ctx.lineTo(pts[tri[1]].x * scaleX, pts[tri[1]].y * scaleY);
-                                    ctx.lineTo(pts[tri[2]].x * scaleX, pts[tri[2]].y * scaleY);
-                                    ctx.closePath();
-                                    ctx.stroke();
-                                }
-                            });
-
-                            // Draw landmark points
-                            ctx.fillStyle = 'rgba(255, 200, 100, 0.9)';
+                            ctx.strokeStyle = '#3b82f6'; // Match kiosk solid blue
+                            ctx.fillStyle = '#3b82f6';
+                            ctx.lineWidth = 2; // Slightly thicker
+                            
+                            // Draw landmarks as dots
                             pts.forEach(p => {
                                 ctx.beginPath();
-                                ctx.arc(p.x * scaleX, p.y * scaleY, 2, 0, Math.PI * 2);
+                                ctx.arc(p.x * scaleX, p.y * scaleY, 1.5, 0, 2 * Math.PI);
                                 ctx.fill();
                             });
+
+                            // Basic mesh lines
+                            drawMeshPath(ctx, pts, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], scaleX, scaleY); // jaw
+                            drawMeshPath(ctx, pts, [17, 18, 19, 20, 21], scaleX, scaleY); // l-brow
+                            drawMeshPath(ctx, pts, [22, 23, 24, 25, 26], scaleX, scaleY); // r-brow
+                            drawMeshPath(ctx, pts, [27, 28, 29, 30, 31, 32, 33, 34, 35], scaleX, scaleY); // nose
+                            drawMeshPath(ctx, pts, [36, 37, 38, 39, 40, 41, 36], scaleX, scaleY); // l-eye
+                            drawMeshPath(ctx, pts, [42, 43, 44, 45, 46, 47, 42], scaleX, scaleY); // r-eye
+                            drawMeshPath(ctx, pts, [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 48], scaleX, scaleY); // mouth
                         });
                     } else {
                         faceBadge.textContent = '👤 No Face';
                         faceBadge.className = 'face-status-badge no-face';
+                        faceStableCount = 0;
                     }
-                } catch (e) {
-                    // Ignore detection errors
-                }
+                } catch (e) {}
             }, 150);
         }
 
-        function drawScaledPath(ctx, points, indices, scaleX, scaleY) {
+        function drawMeshPath(ctx, points, indices, scaleX, scaleY) {
             ctx.beginPath();
             ctx.moveTo(points[indices[0]].x * scaleX, points[indices[0]].y * scaleY);
             for (let i = 1; i < indices.length; i++) {
@@ -692,17 +681,71 @@ include "../config/db_connect.php";
             ctx.stroke();
         }
 
+        async function generateFaceDescriptor() {
+            const video = document.getElementById('camera-preview');
+            const faceBadge = document.getElementById('face-badge');
+            if (!video) return;
+
+            try {
+                const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (detection) {
+                    const descriptor = Array.from(detection.descriptor);
+                    document.getElementById('face-encoding').value = JSON.stringify(descriptor);
+                    
+                    // Duplicate check
+                    const match = findBestMatch(detection.descriptor);
+                    if (match) {
+                        faceBadge.textContent = '❌ ALREADY REGISTERED: ' + match.student.name;
+                        faceBadge.style.background = '#dc2626';
+                        alert('⚠️ WARNING: This face appears to be already registered to: ' + match.student.name);
+                    } else {
+                        faceBadge.textContent = '✅ Face Ready';
+                        faceBadge.className = 'face-status-badge face-ok';
+                        faceBadge.style.background = '';
+                    }
+                }
+            } catch (err) {
+                console.error("Descriptor error:", err);
+            }
+        }
+
         function stopFaceDetection() {
             if (faceDetectionInterval) {
                 clearInterval(faceDetectionInterval);
                 faceDetectionInterval = null;
             }
+            isCapturing = false;
         }
 
-        // Global variable to store section data
-        let sectionData = [];
+        let cameraStream = null;
+        async function startCamera() {
+            const video = document.getElementById('camera-preview');
+            if (!video) return;
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                video.srcObject = cameraStream;
+            } catch (err) {
+                console.error("Camera error:", err);
+                alert("❌ Cannot access camera. Please ensure permissions are granted.");
+            }
+        }
 
-        // Load dropdowns for Add Student form
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            const video = document.getElementById('camera-preview');
+            if (video) video.srcObject = null;
+        }
+
+        // ========================================
+        // ADD STUDENT DROPDOWNS & MODAL
+        // ========================================
+        let sectionData = [];
         function loadAddStudentDropdowns() {
             fetch('student_load_dropdowns.php')
                 .then(response => response.json())
@@ -710,11 +753,7 @@ include "../config/db_connect.php";
                     sectionData = data;
                     const gradeSelect = document.getElementById('add-grade-level');
                     const sectionSelect = document.getElementById('add-section');
-
-                    // Get unique grade levels
                     const uniqueGrades = [...new Set(data.map(item => item.grade_level))];
-
-                    // Populate grade levels
                     gradeSelect.innerHTML = '<option value="">Select Grade Level</option>';
                     uniqueGrades.forEach(grade => {
                         const option = document.createElement('option');
@@ -722,17 +761,11 @@ include "../config/db_connect.php";
                         option.textContent = grade;
                         gradeSelect.appendChild(option);
                     });
-
-                    // Reset section
                     sectionSelect.innerHTML = '<option value="">Select Grade First</option>';
-
-                    // Grade change event
                     gradeSelect.onchange = function () {
-                        const selectedGrade = this.value;
                         sectionSelect.innerHTML = '<option value="">Select Section</option>';
-
-                        if (selectedGrade) {
-                            const sections = sectionData.filter(item => item.grade_level === selectedGrade);
+                        if (this.value) {
+                            const sections = sectionData.filter(item => item.grade_level === this.value);
                             sections.forEach(item => {
                                 const option = document.createElement('option');
                                 option.value = item.section;
@@ -745,81 +778,116 @@ include "../config/db_connect.php";
                 .catch(err => console.error('Error loading dropdowns:', err));
         }
 
-        // Load models when page loads
-        document.addEventListener('DOMContentLoaded', function () {
-            loadFaceModels();
-
-            // Start face detection when modal opens
-            var openBtn = document.getElementById('btn-open-add-student');
-            if (openBtn) {
-                openBtn.addEventListener('click', function () {
-                    // Load dropdowns when modal opens
-                    loadAddStudentDropdowns();
-                    setTimeout(startFaceDetectionForRegistration, 1000);
-                });
-            }
-
-            // Stop face detection when modal closes
-            var cancelBtn = document.getElementById('btn-cancel-add-student');
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', stopFaceDetection);
-            }
-        });
-
-        // ========================================
-        // EDIT STUDENT FUNCTIONALITY
-        // ========================================
-
-        // Load grade levels for edit modal
-        function loadEditGradeLevels(selectedGrade, selectedSection) {
-            fetch('student_load_dropdowns.php')
-                .then(response => response.json())
-                .then(data => {
-                    const gradeSelect = document.getElementById('edit-grade-level');
-                    const sectionSelect = document.getElementById('edit-section');
-
-                    // Clear and populate grade levels
-                    gradeSelect.innerHTML = '<option value="">Select Grade Level</option>';
-                    const uniqueGrades = [...new Set(data.map(item => item.grade_level))];
-                    uniqueGrades.forEach(grade => {
-                        const option = document.createElement('option');
-                        option.value = grade;
-                        option.textContent = grade;
-                        if (grade === selectedGrade) option.selected = true;
-                        gradeSelect.appendChild(option);
-                    });
-
-                    // Populate sections for selected grade
-                    updateEditSections(data, selectedGrade, selectedSection);
-
-                    // Add change listener for grade
-                    gradeSelect.onchange = function () {
-                        updateEditSections(data, this.value, '');
-                    };
-                })
-                .catch(err => console.error('Error loading dropdowns:', err));
+        // Open/Close Modal
+        const openBtn = document.getElementById('btn-open-add-student');
+        if (openBtn) {
+            openBtn.addEventListener('click', function () {
+                document.getElementById('add-student-modal').classList.remove('hidden');
+                loadAddStudentDropdowns();
+                startCamera();
+                setTimeout(startFaceDetectionForRegistration, 1000);
+            });
         }
-
-        function updateEditSections(data, grade, selectedSection) {
-            const sectionSelect = document.getElementById('edit-section');
-            sectionSelect.innerHTML = '<option value="">Select Section</option>';
-
-            const sections = data.filter(item => item.grade_level === grade);
-            sections.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.section;
-                option.textContent = item.section;
-                if (item.section === selectedSection) option.selected = true;
-                sectionSelect.appendChild(option);
+        const cancelBtn = document.getElementById('btn-cancel-add-student');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+                stopFaceDetection();
+                stopCamera();
+                document.getElementById('add-student-modal').classList.add('hidden');
             });
         }
 
-        // Edit button click handler
-        document.addEventListener('click', function (e) {
-            if (e.target && e.target.classList.contains('btn-edit')) {
-                const btn = e.target;
+        // Photo Capture (Manual)
+        document.getElementById('capture-btn')?.addEventListener('click', async function() {
+            const video = document.getElementById('camera-preview');
+            const canvas = document.getElementById('snapshot-canvas');
+            const preview = document.getElementById('photo-preview');
+            const photoInput = document.getElementById('photo-data');
+            if (video && canvas && preview && photoInput) {
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg');
+                preview.src = dataUrl;
+                preview.style.display = 'block';
+                photoInput.value = dataUrl;
+                
+                // Also generate descriptor
+                this.disabled = true;
+                this.textContent = '🔍 Generating encoding...';
+                await generateFaceDescriptor();
+                this.disabled = false;
+                this.textContent = '📷 Capture Photo';
+            }
+        });
 
-                // Populate edit form
+        // Form Submit
+        document.getElementById('add-student-form')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate face encoding
+            if (!document.getElementById('face-encoding').value) {
+                alert('❓ Please capture a photo with a visible face first.');
+                return;
+            }
+
+            const btnSubmit = this.querySelector('button[type="submit"]');
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Saving...';
+            fetch('student_add_save.php', { method: 'POST', body: new FormData(this) })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ ' + (data.message || 'Student added!'));
+                        stopFaceDetection();
+                        stopCamera();
+                        document.getElementById('add-student-modal').classList.add('hidden');
+                        if (typeof loadPage === 'function') loadPage('student_table.php');
+                        else location.reload();
+                    } else {
+                        alert('❌ ' + data.message);
+                        btnSubmit.disabled = false;
+                        btnSubmit.textContent = 'Save';
+                    }
+                })
+                .catch(() => {
+                    alert('❌ Error saving');
+                    btnSubmit.disabled = false;
+                });
+        });
+
+        // ========================================
+        // EDIT STUDENT
+        // ========================================
+        function loadEditGradeLevels(selectedGrade, selectedSection) {
+            fetch('student_load_dropdowns.php')
+                .then(r => r.json())
+                .then(data => {
+                    const gradeSel = document.getElementById('edit-grade-level');
+                    const secSel = document.getElementById('edit-section');
+                    gradeSel.innerHTML = '<option value="">Select Grade Level</option>';
+                    [...new Set(data.map(item => item.grade_level))].forEach(g => {
+                        const opt = document.createElement('option');
+                        opt.value = g; opt.textContent = g;
+                        if (g === selectedGrade) opt.selected = true;
+                        gradeSel.appendChild(opt);
+                    });
+                    updateEditSections(data, selectedGrade, selectedSection);
+                    gradeSel.onchange = () => updateEditSections(data, gradeSel.value, '');
+                });
+        }
+        function updateEditSections(data, grade, sel) {
+            const secSel = document.getElementById('edit-section');
+            secSel.innerHTML = '<option value="">Select Section</option>';
+            data.filter(i => i.grade_level === grade).forEach(i => {
+                const opt = document.createElement('option');
+                opt.value = i.section; opt.textContent = i.section;
+                if (i.section === sel) opt.selected = true;
+                secSel.appendChild(opt);
+            });
+        }
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-edit');
+            if (btn) {
                 document.getElementById('edit-id').value = btn.dataset.id;
                 document.getElementById('edit-student-id-display').textContent = btn.dataset.student;
                 document.getElementById('edit-firstname').value = btn.dataset.firstname || '';
@@ -829,100 +897,53 @@ include "../config/db_connect.php";
                 document.getElementById('edit-guardian-name').value = btn.dataset.guardian || '';
                 document.getElementById('edit-guardian-contact').value = btn.dataset.contact || '';
                 document.getElementById('edit-guardian-email').value = btn.dataset.email || '';
-
-                // Load dropdowns with current values selected
                 loadEditGradeLevels(btn.dataset.grade, btn.dataset.section);
-
-                // Show modal
                 document.getElementById('edit-student-modal').classList.remove('hidden');
             }
         });
-
-        // Cancel edit
-        document.getElementById('btn-cancel-edit')?.addEventListener('click', function () {
+        document.getElementById('btn-cancel-edit')?.addEventListener('click', () => {
             document.getElementById('edit-student-modal').classList.add('hidden');
         });
-
-        // Submit edit form
         document.getElementById('edit-student-form')?.addEventListener('submit', function (e) {
             e.preventDefault();
-
-            const formData = new FormData(this);
-
-            fetch('student_update.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
+            fetch('student_update.php', { method: 'POST', body: new FormData(this) })
+                .then(r => r.json())
                 .then(data => {
                     if (data.success) {
                         alert('✅ ' + data.message);
-                        document.getElementById('edit-student-modal').classList.add('hidden');
-                        // Reload the page to show updated data
                         location.reload();
-                    } else {
-                        alert('❌ ' + data.message);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    alert('❌ Failed to update student');
+                    } else alert('❌ ' + data.message);
                 });
         });
 
         // ========================================
-        // DELETE STUDENT FUNCTIONALITY
+        // DELETE STUDENT
         // ========================================
-
-        // Delete button click handler
-        document.addEventListener('click', function (e) {
-            if (e.target && e.target.classList.contains('btn-delete')) {
-                const btn = e.target;
-
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-delete');
+            if (btn) {
                 document.getElementById('delete-student-id').value = btn.dataset.id;
                 document.getElementById('delete-student-name').textContent = btn.dataset.name;
                 document.getElementById('delete-confirm-modal').classList.remove('hidden');
             }
         });
-
-        // Cancel delete
-        document.getElementById('btn-cancel-delete')?.addEventListener('click', function () {
+        document.getElementById('btn-cancel-delete')?.addEventListener('click', () => {
             document.getElementById('delete-confirm-modal').classList.add('hidden');
         });
-
-        // Confirm delete (archive)
-        document.getElementById('btn-confirm-delete')?.addEventListener('click', function () {
-            const id = document.getElementById('delete-student-id').value;
-
-            const formData = new FormData();
-            formData.append('id', id);
-
-            fetch('student_delete.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
+        document.getElementById('btn-confirm-delete')?.addEventListener('click', () => {
+            const fd = new FormData();
+            fd.append('id', document.getElementById('delete-student-id').value);
+            fetch('student_delete.php', { method: 'POST', body: fd })
+                .then(r => r.json())
                 .then(data => {
                     if (data.success) {
                         alert('✅ ' + data.message);
-                        document.getElementById('delete-confirm-modal').classList.add('hidden');
-                        // Reload using parent's loadPage function or full reload
-                        if (typeof loadPage === 'function') {
-                            loadPage('student_table.php');
-                        } else if (parent && typeof parent.loadPage === 'function') {
-                            parent.loadPage('student_table.php');
-                        } else {
-                            window.location.href = 'student_table.php';
-                        }
-                    } else {
-                        alert('❌ ' + data.message);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-           alert('❌ Failed to archive student');
+                        if (typeof loadPage === 'function') loadPage('student_table.php');
+                        else location.reload();
+                    } else alert('❌ ' + data.message);
                 });
         });
 
-    }, 0);
+        loadFaceModels();
+    })();
 </script>
