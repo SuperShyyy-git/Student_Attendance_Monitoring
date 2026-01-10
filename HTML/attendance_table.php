@@ -125,6 +125,9 @@ $totalRecords = count($records);
     <button type="button" onclick="window.doAttReset();"
         style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; pointer-events: auto !important; position: relative; z-index: 9999;">↻
         Reset</button>
+    <button type="button" onclick="window.doAttExport();"
+        style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; pointer-events: auto !important; position: relative; z-index: 9999;">📥
+        Download CSV</button>
 </div>
 
 <!-- STATS ROW -->
@@ -164,10 +167,13 @@ $totalRecords = count($records);
     </thead>
     <tbody>
         <?php if ($totalRecords === 0): ?>
+            <!-- Hidden: No records message - hide if not yet checked in -->
+            <!--
             <tr>
                 <td colspan="<?php echo $hasImagePath ? 8 : 7; ?>"
                     style="text-align:center; padding: 40px; color: #7f8c8d;">No attendance records found.</td>
             </tr>
+            -->
         <?php else: ?>
             <?php foreach ($records as $row):
                 $statusClass = strtoupper($row['status']) === 'TIME IN' ? 'status-connected' : 'status-not-connected';
@@ -328,6 +334,28 @@ $totalRecords = count($records);
                 fetch('attendance_table.php').then(function (r) { return r.text(); }).then(function (html) { contentArea.innerHTML = html; });
             }
         }
+    };
+
+    // Export function - downloads CSV with current filters
+    window.doAttExport = function () {
+        var student = document.getElementById('att-filter-student').value;
+        var start = document.getElementById('att-filter-start').value;
+        var end = document.getElementById('att-filter-end').value;
+        var section = document.getElementById('att-filter-section').value;
+        var status = document.getElementById('att-filter-status').value;
+
+        var params = [];
+        if (student) params.push('student=' + encodeURIComponent(student));
+        if (start) params.push('start_date=' + encodeURIComponent(start));
+        if (end) params.push('end_date=' + encodeURIComponent(end));
+        if (section) params.push('section=' + encodeURIComponent(section));
+        if (status) params.push('status=' + encodeURIComponent(status));
+
+        var url = 'export_attendance_filtered.php';
+        if (params.length > 0) url += '?' + params.join('&');
+
+        // Open download in new window/tab to trigger file download
+        window.open(url, '_blank');
     };
 
     // Attach listener for Enter key on search input
