@@ -17,7 +17,7 @@ $filterGradeLevel = isset($_GET['grade_level']) ? $_GET['grade_level'] : '';
 $filterStudent = isset($_GET['student']) ? $_GET['student'] : '';
 $filterStatus = isset($_GET['status']) ? $_GET['status'] : '';
 $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-d', strtotime('-30 days'));
-$endDate = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-d');
+$endDate = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-d', strtotime('+7 days')); // Include future dates to ensure today shows
 
 // Check if image_path column exists
 $columnCheck = $conn->query("SHOW COLUMNS FROM student_attendance LIKE 'image_path'");

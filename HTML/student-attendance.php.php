@@ -8,13 +8,9 @@ if (!isset($_SESSION["user_id"])) {
 date_default_timezone_set('Asia/Manila');
 include __DIR__ . "/../config/db_connect.php";
 
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    die("<b>ERROR:</b> Database connection not created.");
-}
-
 $today = date('Y-m-d');
 
-// SIMPLIFIED QUERY - Using LEFT JOIN instead of subqueries for better performance
+// Simple direct JOIN query - no subqueries
 $sql = "
     SELECT DISTINCT
         s.student_id,
@@ -34,8 +30,6 @@ $sql = "
 ";
 
 $result = $conn->query($sql);
-
-// Calculate stats
 $students = [];
 $presentCount = 0;
 $absentCount = 0;
@@ -216,16 +210,6 @@ $totalStudents = count($students);
         padding: 6px 12px;
         background: #f8d7da;
         color: #721c24;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 12px;
-    }
-
-    .status-warning {
-        display: inline-block;
-        padding: 6px 12px;
-        background: #fff3cd;
-        color: #856404;
         border-radius: 20px;
         font-weight: 600;
         font-size: 12px;

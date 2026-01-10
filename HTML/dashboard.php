@@ -139,15 +139,9 @@ if (!isset($_SESSION["user_id"])) {
                 <span>Student Attendance</span>
             </li>
 
-
-            <li onclick="loadPage('checkin_checkout.php')">
-                <i data-lucide="clock"></i>
-                <span>Check-in / Check-out Time</span>
-            </li>
-
-            <li onclick="loadPage('attendance_table.php')">
-                <i data-lucide="history"></i>
-                <span>Attendance History</span>
+            <li onclick="loadPage('attendance_combined.php')">
+                <i data-lucide="calendar"></i>
+                <span>Attendance Management</span>
             </li>
 
 

@@ -16,22 +16,26 @@ $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_attendance'])) {
-        $studentId = (int) $_POST['student_id'];
+        $studentRecordId = (int) $_POST['student_id'];
         $date = $_POST['attendance_date'];
         $time = $_POST['attendance_time'];
         $status = $_POST['status'];
         $reason = $_POST['reason'] ?? '';
 
-        $stmt = $conn->prepare("SELECT firstname, middlename, lastname, section, grade_level FROM students WHERE id = ?");
-        $stmt->bind_param('i', $studentId);
+        // Get student data including the student_id field
+        $stmt = $conn->prepare("SELECT student_id, firstname, middlename, lastname, section, grade_level FROM students WHERE id = ?");
+        $stmt->bind_param('i', $studentRecordId);
         $stmt->execute();
         $student = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
         if ($student) {
             $fullName = trim($student['firstname'] . ' ' . ($student['middlename'] ?? '') . ' ' . $student['lastname']);
-            $ins = $conn->prepare("INSERT INTO student_attendance (student_name, section, grade_level, attendance_date, attendance_time, status) VALUES (?, ?, ?, ?, ?, ?)");
-            $ins->bind_param('ssssss', $fullName, $student['section'], $student['grade_level'], $date, $time, $status);
+            $studentId = $student['student_id']; // Get the actual student_id
+
+            // Include student_id in the INSERT statement
+            $ins = $conn->prepare("INSERT INTO student_attendance (student_id, student_name, section, grade_level, attendance_date, attendance_time, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $ins->bind_param('sssssss', $studentId, $fullName, $student['section'], $student['grade_level'], $date, $time, $status);
 
             if ($ins->execute()) {
                 $message = "✅ Attendance record added for {$fullName} - {$status} on {$date}";
@@ -367,7 +371,7 @@ $recentAttendance = $conn->query("SELECT attendance_id, student_name, section, a
     };
 
     // Delete attendance record via AJAX
-    window.deleteAttendance = function(attendanceId) {
+    window.deleteAttendance = function (attendanceId) {
         if (!confirm('Delete this attendance record?')) {
             return;
         }

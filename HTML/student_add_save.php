@@ -72,87 +72,24 @@ $savePathForDB = "uploads/" . $filename;
 
 
 // =============================================================================
-// 2. RUN PYTHON ENCODER (generate_encoding.py)
+// 2. GET FACE ENCODING FROM BROWSER (face-api.js)
 // =============================================================================
+// Face encoding is now generated in the browser using face-api.js
+// and sent via the hidden 'face_encoding' form field
 
-// ✔ YOUR REAL PYTHON LOCATION
-$python = "C:/Users/shiel/AppData/Local/Programs/Python/Python310/python.exe";
-
-// ✔ Path to your encoding script
-$script = "C:/xampp/htdocs/attendance/python/generate_encoding.py";
-
-if (!file_exists($script)) {
-    echo json_encode(["success" => false, "message" => "Python script not found: $script"]);
+if (empty($_POST['face_encoding'])) {
+    echo json_encode(["success" => false, "message" => "No face encoding provided. Please capture a photo with a visible face."]);
     exit;
 }
 
-// Ensure python executable exists (common issue when Apache runs under another user)
-if (!file_exists($python)) {
-    echo json_encode(["success" => false, "message" => "Python executable not found: $python"]);
+$encodingJson = $_POST['face_encoding'];
+
+// Validate that it's valid JSON
+$testDecode = json_decode($encodingJson);
+if ($testDecode === null && json_last_error() !== JSON_ERROR_NONE) {
+    echo json_encode(["success" => false, "message" => "Invalid face encoding format"]);
     exit;
 }
-
-$imgFullPath = realpath($filepath);
-
-// Build command and redirect stderr to stdout so we capture all messages
-$cmd = "\"$python\" \"$script\" \"$imgFullPath\" 2>&1";
-
-// Prepare debug log
-$logDir = __DIR__ . "/../logs";
-if (!is_dir($logDir))
-    mkdir($logDir, 0777, true);
-$logFile = $logDir . "/python_debug.log";
-
-// Run python
-$output = shell_exec($cmd);
-
-// Log command and output for debugging
-file_put_contents($logFile, date("Y-m-d H:i:s") . " CMD: $cmd\nOUTPUT: " . var_export($output, true) . "\n\n", FILE_APPEND);
-
-if ($output === null) {
-    echo json_encode(["success" => false, "message" => "shell_exec failed or is disabled on this server", "cmd" => $cmd]);
-    exit;
-}
-
-if (trim($output) === "") {
-    echo json_encode(["success" => false, "message" => "Python returned no output", "cmd" => $cmd]);
-    exit;
-}
-
-$response = json_decode($output, true);
-
-// If json_decode failed (null), try to extract JSON from output
-// Python warnings appear before the JSON, so find and extract just the JSON part
-if ($response === null && !empty($output)) {
-    // Find where the JSON starts (look for leading { or [)
-    $json_start = strpos($output, '{');
-    if ($json_start !== false) {
-        $json_str = substr($output, $json_start);
-        $response = json_decode($json_str, true);
-    }
-}
-
-// Decode response and provide more debug info when things fail
-if (isset($response["error"])) {
-    echo json_encode(["success" => false, "message" => "Encoder error: " . $response["error"], "python_output" => $response, "raw_output" => $output, "saved_image" => $savePathForDB]);
-    exit;
-}
-
-if (!isset($response["encoding"])) {
-    // If script provided a debug image path or model info, include it
-    $debug = [];
-    if (isset($response["debug_image"]) && !empty($response["debug_image"])) {
-        $debug['debug_image'] = $response['debug_image'];
-    }
-    if (isset($response["model"])) {
-        $debug['model_tried'] = $response['model'];
-    }
-
-    echo json_encode(["success" => false, "message" => "Face encoding missing", "python_output" => $response, "raw_output" => $output, "debug" => $debug, "saved_image" => $savePathForDB]);
-    exit;
-}
-
-$encodingJson = json_encode($response["encoding"]);
 
 
 // =============================================================================

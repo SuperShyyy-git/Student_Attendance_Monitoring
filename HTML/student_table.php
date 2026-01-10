@@ -1,14 +1,32 @@
 <?php
 include "../config/db_connect.php";
+
+// Get stats
+$totalStudents = 0;
+$activeStudents = 0;
+$archivedStudents = 0;
+
+$statsQuery = $conn->query("SELECT COUNT(*) as total FROM students");
+if ($statsQuery) {
+    $totalStudents = $statsQuery->fetch_assoc()['total'];
+}
+$activeQuery = $conn->query("SELECT COUNT(*) as count FROM students WHERE is_archived = 0 OR is_archived IS NULL");
+if ($activeQuery) {
+    $activeStudents = $activeQuery->fetch_assoc()['count'];
+}
+$archivedQuery = $conn->query("SELECT COUNT(*) as count FROM students WHERE is_archived = 1");
+if ($archivedQuery) {
+    $archivedStudents = $archivedQuery->fetch_assoc()['count'];
+}
 ?>
 
 <div class="header-bar">
-    <h2 class='table-title'>Student List</h2>
+    <h2 class='table-title'>Student Management</h2>
     <button id="btn-logout" class="btn-logout">Logout</button>
 </div>
 
 <!-- ADD STUDENT BUTTON -->
-<div style="display: flex; gap: 10px; margin: 15px 20px;">
+<div style="display: flex; gap: 10px; margin: 15px 0;">
     <button id="btn-open-add-student" class="btn-add-student">➕ Add Student</button>
     <button onclick="loadPage('student_archive.php')" class="btn-view-archive">📦 View Archived</button>
 </div>
@@ -35,208 +53,278 @@ include "../config/db_connect.php";
     </div>
 </div>
 
-<hr>
+<!-- STATS ROW -->
+<div style="display: flex; gap: 15px; margin-bottom: 15px;">
+    <div
+        style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #3498db;">
+        <div style="font-size: 24px; font-weight: 700; color: #2c3e50;">
+            <?php echo $totalStudents; ?>
+        </div>
+        <div style="font-size: 12px; color: #7f8c8d;">Total Students</div>
+    </div>
+    <div
+        style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #27ae60;">
+        <div style="font-size: 24px; font-weight: 700; color: #27ae60;">
+            <?php echo $activeStudents; ?>
+        </div>
+        <div style="font-size: 12px; color: #7f8c8d;">Active</div>
+    </div>
+    <div
+        style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #e74c3c;">
+        <div style="font-size: 24px; font-weight: 700; color: #e74c3c;">
+            <?php echo $archivedStudents; ?>
+        </div>
+        <div style="font-size: 12px; color: #7f8c8d;">Archived</div>
+    </div>
+</div>
 
-<table class="student-table">
-    <thead>
-        <tr>
-            <th>Student ID</th>
-            <th>First Name</th>
-            <th>Middle Name</th>
-            <th>Last Name</th>
-            <th>Address</th>
-            <th>Grade Level</th>
-            <th>Section</th>
-            <th>Guardian</th>
-            <th>Contact</th>
-            <th>Email</th>
-            <th>Email Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
+<hr style="margin-bottom: 15px; border: none; border-top: 1px solid #ecf0f1;">
 
-    <tbody>
-        <?php
-        $query = "SELECT s.*, a.name as adviser_name 
-                  FROM students s
-                  LEFT JOIN section_yrlevel sy ON s.section = sy.section AND s.grade_level = sy.grade_level
-                  LEFT JOIN advisers a ON sy.adviser_id = a.id
-                  WHERE (s.is_archived = 0 OR s.is_archived IS NULL)
-                  ORDER BY s.lastname ASC, s.firstname ASC";
-        $result = $conn->query($query);
-
-        if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-
-                $emailStatus = !empty($row['guardian_email']) ? '<span class=\'status-connected\'>✓ Set</span>' : '<span class=\'status-not-connected\'>Not Set</span>';
-                $guardianEmail = !empty($row['guardian_email']) ? htmlspecialchars($row['guardian_email']) : '<span style="color:#999">-</span>';
-
-                echo "
-                <tr>
-                    <td>{$row['student_id']}</td>
-                    <td>{$row['firstname']}</td>
-                    <td>{$row['middlename']}</td>
-                    <td>{$row['lastname']}</td>
-                    <td>{$row['address']}</td>
-                    <td>{$row['grade_level']}</td>
-                    <td>{$row['section']}</td>
-                    <td>{$row['guardian_name']}</td>
-                    <td>{$row['guardian_contact']}</td>
-                    <td>{$guardianEmail}</td>
-                    <td>{$emailStatus}</td>
-                    <td class='actions-cell'>
-                        <button class='btn-edit' data-id='{$row['id']}' data-student='{$row['student_id']}' data-firstname='{$row['firstname']}' data-middlename='{$row['middlename']}' data-lastname='{$row['lastname']}' data-address='{$row['address']}' data-grade='{$row['grade_level']}' data-section='{$row['section']}' data-guardian='{$row['guardian_name']}' data-contact='{$row['guardian_contact']}' data-email='{$row['guardian_email']}'>✏️ Edit</button>
-                        <button class='btn-delete' data-id='{$row['id']}' data-name='{$row['firstname']} {$row['lastname']}'>🗑️ Delete</button>
-                    </td>
-                </tr>
-                ";
-            }
-        } else {
-            echo "
+<div class="table-container">
+    <table class="student-table">
+        <thead>
             <tr>
-                <td colspan='12' style='text-align:center;'>No students found.</td>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Grade & Section</th>
+                <th>Guardian Contact</th>
+                <th>Email Status</th>
+                <th style="min-width: 140px;">Actions</th>
             </tr>
-            ";
-        }
-        ?>
-    </tbody>
-</table>
+        </thead>
+
+        <tbody>
+            <?php
+            $query = "SELECT s.*, a.name as adviser_name 
+                      FROM students s
+                      LEFT JOIN section_yrlevel sy ON s.section = sy.section AND s.grade_level = sy.grade_level
+                      LEFT JOIN advisers a ON sy.adviser_id = a.id
+                      WHERE (s.is_archived = 0 OR s.is_archived IS NULL)
+                      ORDER BY s.lastname ASC, s.firstname ASC";
+            $result = $conn->query($query);
+
+            if ($result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $fullName = htmlspecialchars($row['lastname'] . ", " . $row['firstname'] . " " . $row['middlename']);
+                    $gradeSection = htmlspecialchars($row['grade_level'] . " - " . $row['section']);
+                    $contact = htmlspecialchars($row['guardian_contact']);
+                    $emailStatus = !empty($row['guardian_email']) ? '<span class=\'status-connected\'>✓ Set</span>' : '<span class=\'status-not-connected\'>Not Set</span>';
+
+                    echo "
+                    <tr>
+                        <td style='font-family: monospace; font-weight: 600;'>{$row['student_id']}</td>
+                        <td style='font-weight: 500;'>{$fullName}</td>
+                        <td>{$gradeSection}</td>
+                        <td>{$contact}</td>
+                        <td>{$emailStatus}</td>
+                        <td class='actions-cell'>
+                            <button class='btn-edit' data-id='{$row['id']}' data-student='{$row['student_id']}' data-firstname='{$row['firstname']}' data-middlename='{$row['middlename']}' data-lastname='{$row['lastname']}' data-address='{$row['address']}' data-grade='{$row['grade_level']}' data-section='{$row['section']}' data-guardian='{$row['guardian_name']}' data-contact='{$row['guardian_contact']}' data-email='{$row['guardian_email']}'>✏️ Edit</button>
+                            <button class='btn-delete' data-id='{$row['id']}' data-name='{$fullName}'>🗑️ Delete</button>
+                        </td>
+                    </tr>
+                    ";
+                }
+            } else {
+                echo "<tr><td colspan='6' style='text-align:center;'>No students found.</td></tr>";
+            }
+            ?>
+        </tbody>
+    </table>
+</div>
 
 
-<!-- ADD STUDENT MODAL (UPDATED WITH RFID + CAMERA CAPTURE + 2-COLUMN LAYOUT) -->
+<!-- ADD STUDENT MODAL -->
 <div id="add-student-modal" class="edit-modal hidden">
-    <div class="edit-modal-box student-modal">
+    <div class="edit-modal-box student-modal" style="width: 1000px; max-width: 95vw;">
+        <h3>➕ Add New Student</h3>
 
-        <h3>Add Student</h3>
-
-        <!-- WRAPPER (2 COLUMNS) -->
-        <div class="student-modal-body">
-
+        <div class="student-modal-body" style="display: flex; gap: 30px; align-items: flex-start;">
             <!-- LEFT SIDE = FORM -->
-            <form id="add-student-form" class="student-form">
+            <form id="add-student-form" class="student-form" style="flex: 1;">
+                <div
+                    style="background: #f0f9ff; color: #0369a1; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; border-left: 4px solid #0ea5e9; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">ℹ️</span>
+                    <span>Student Number will be auto-generated (e.g., STU-2025-0001)</span>
+                </div>
 
-                <p
-                    style="background: #d4edda; color: #155724; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
-                    📋 Student Number will be auto-generated (e.g., STU-2025-0001)
-                </p>
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Firstname</label>
+                        <input type="text" name="firstname" placeholder="Enter first name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Middlename</label>
+                        <input type="text" name="middlename" placeholder="Enter middle name">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Lastname</label>
+                        <input type="text" name="lastname" placeholder="Enter last name" required>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Address</label>
+                        <input type="text" name="address" placeholder="Complete home address...">
+                    </div>
+                    <div class="form-group">
+                        <label>Grade Level</label>
+                        <select name="grade_level" id="add-grade-level" required>
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Section</label>
+                        <select name="section" id="add-section" required>
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                </div>
 
-                <label>Firstname</label>
-                <input type="text" name="firstname" required>
+                <hr style="margin: 25px 0; border: none; border-top: 1.5px dashed #e2e8f0;">
 
-                <label>Middlename</label>
-                <input type="text" name="middlename">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Guardian's Name</label>
+                    <input type="text" name="guardian_name" placeholder="Full name of parent/guardian" required>
+                </div>
 
-                <label>Lastname</label>
-                <input type="text" name="lastname" required>
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <input type="text" name="guardian_contact" id="guardian-contact" pattern="^09[0-9]{9}$"
+                            maxlength="11" placeholder="09XXXXXXXXX" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Parent Email</label>
+                        <input type="email" name="guardian_email" placeholder="parent@email.com" required>
+                    </div>
+                </div>
 
-                <label>Address</label>
-                <input type="text" name="address" placeholder="Complete address...">
-
-                <label>Grade Level</label>
-                <select name="grade_level" id="add-grade-level" required>
-                    <option value="">Loading...</option>
-                </select>
-
-                <label>Section</label>
-                <select name="section" id="add-section" required>
-                    <option value="">Loading...</option>
-                </select>
-
-                <label>Guardian's Name</label>
-                <input type="text" name="guardian_name" required>
-
-                <label>Guardian's Contact Number</label>
-                <input type="text" name="guardian_contact" id="guardian-contact" pattern="^09[0-9]{9}$" maxlength="11"
-                    placeholder="09XXXXXXXXX" title="Must be 11 digits starting with 09" required>
-                <small style="color: #666; font-size: 12px;">Format: 09XXXXXXXXX (11 digits)</small>
-
-                <label>Guardian's Email (for notifications)</label>
-                <input type="email" name="guardian_email" placeholder="parent@email.com" required>
-
-                <!-- Hidden input for Base64 Image and Face Encoding -->
                 <input type="hidden" name="photo_data" id="photo-data">
                 <input type="hidden" name="face_encoding" id="face-encoding">
 
-                <div class="modal-buttons">
-                    <button type="submit" class="btn-save-edit">Save</button>
-                    <button type="button" id="btn-cancel-add-student">Cancel</button>
+                <div class="modal-buttons" style="margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                    <button type="submit" class="btn-save-edit"
+                        style="background: #1e293b; color: white; padding: 12px 24px;">💾 Save Student Record</button>
+                    <button type="button" id="btn-cancel-add-student" class="btn-cancel"
+                        style="padding: 12px 24px;">Cancel</button>
                 </div>
-
             </form>
 
             <!-- RIGHT SIDE = CAMERA -->
-            <div class="camera-box">
+            <div class="camera-section" style="width: 480px; flex-shrink: 0;">
+                <h4
+                    style="margin-top: 0; margin-bottom: 15px; color: #475569; display: flex; align-items: center; gap: 10px;">
+                    <span>📷 Facial Recognition Enrollment</span>
+                    <span id="face-loading" style="font-size: 12px; font-weight: normal; color: #94a3b8;">Loading
+                        Models...</span>
+                </h4>
 
-                <h4>📷 Student Photo</h4>
-
-                <div class="camera-preview-wrapper" style="position: relative; display: inline-block; border-radius: 12px; overflow: hidden; background: #1f2937;">
+                <div class="camera-wrapper"
+                    style="position: relative; border-radius: 12px; overflow: hidden; background: #0f172a; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
                     <video id="camera-preview" autoplay
-                        style="width: 480px; height: 360px; border-radius: 8px; transform: scaleX(-1); display: block;"></video>
+                        style="width: 480px; height: 360px; transform: scaleX(-1); display: block; object-fit: cover;"></video>
                     <canvas id="face-overlay-canvas" width="480" height="360"
                         style="position: absolute; top: 0; left: 0; pointer-events: none; transform: scaleX(-1);"></canvas>
-                    <div id="face-badge" class="face-status-badge no-face">👤 No Face</div>
+                    <div id="face-badge" class="face-status-badge no-face">👤 No Face Detected</div>
                 </div>
 
-                <button type="button" id="capture-btn" class="btn-save-edit" style="margin-top:10px; width: 480px;">
-                    📷 Capture Photo
+                <button type="button" id="capture-btn" class="btn-save-edit"
+                    style="margin-top: 15px; width: 100%; height: 50px; background: #3b82f6; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px;">
+                    📸 Capture Face Data
                 </button>
 
                 <canvas id="snapshot-canvas" width="480" height="360" style="display:none;"></canvas>
 
-                <img id="photo-preview" style="display:none; margin-top:10px; max-width: 480px; border-radius: 8px;">
-
+                <!-- Photo Preview Section -->
+                <div id="photo-preview-container"
+                    style="display:none; margin-top: 20px; padding: 15px; background: #ecfdf5; border: 2px solid #10b981; border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <span style="font-size: 24px;">✅</span>
+                        <div>
+                            <p style="font-size: 14px; font-weight: 700; color: #047857; margin: 0;">Face Captured
+                                Successfully!</p>
+                            <p style="font-size: 12px; color: #059669; margin: 4px 0 0 0;">Face data ready for
+                                enrollment</p>
+                        </div>
+                    </div>
+                    <div style="position: relative;">
+                        <img id="photo-preview"
+                            style="width: 100%; border-radius: 8px; border: 3px solid #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+                        <div
+                            style="position: absolute; top: 8px; right: 8px; background: #10b981; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                            📷 CAPTURED
+                        </div>
+                    </div>
+                </div>
             </div>
-
         </div>
     </div>
 </div>
 </div>
 <!-- EDIT STUDENT MODAL -->
 <div id="edit-student-modal" class="edit-modal hidden">
-    <div class="edit-modal-box" style="width: 480px;">
-        <h3>✏️ Edit Student</h3>
+    <div class="edit-modal-box" style="width: 500px; max-width: 95vw;">
+        <h3>✏️ Edit Student Profile</h3>
         <form id="edit-student-form">
             <input type="hidden" name="id" id="edit-id">
 
-            <p
-                style="background: #e3f2fd; color: #1565c0; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px;">
-                📋 Student ID: <strong id="edit-student-id-display"></strong>
-            </p>
+            <div
+                style="background: #eff6ff; color: #1d4ed8; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; border: 1px solid #dbeafe; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">🆔</span>
+                <span>Student ID: <strong id="edit-student-id-display"></strong></span>
+            </div>
 
-            <label>Firstname</label>
-            <input type="text" name="firstname" id="edit-firstname" required>
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Firstname</label>
+                    <input type="text" name="firstname" id="edit-firstname" required>
+                </div>
+                <div>
+                    <label>Middlename</label>
+                    <input type="text" name="middlename" id="edit-middlename">
+                </div>
+                <div style="grid-column: span 2;">
+                    <label>Lastname</label>
+                    <input type="text" name="lastname" id="edit-lastname" required>
+                </div>
+            </div>
 
-            <label>Middlename</label>
-            <input type="text" name="middlename" id="edit-middlename">
+            <label style="margin-top: 15px;">Address</label>
+            <input type="text" name="address" id="edit-address" placeholder="Residential address">
 
-            <label>Lastname</label>
-            <input type="text" name="lastname" id="edit-lastname" required>
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div>
+                    <label>Grade Level</label>
+                    <select name="grade_level" id="edit-grade-level" required>
+                        <option value="">Select Grade</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Section</label>
+                    <select name="section" id="edit-section" required>
+                        <option value="">Select Section</option>
+                    </select>
+                </div>
+            </div>
 
-            <label>Address</label>
-            <input type="text" name="address" id="edit-address">
-
-            <label>Grade Level</label>
-            <select name="grade_level" id="edit-grade-level" required>
-                <option value="">Select Grade Level</option>
-            </select>
-
-            <label>Section</label>
-            <select name="section" id="edit-section" required>
-                <option value="">Select Section</option>
-            </select>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
 
             <label>Guardian's Name</label>
             <input type="text" name="guardian_name" id="edit-guardian-name" required>
 
-            <label>Guardian's Contact Number</label>
-            <input type="text" name="guardian_contact" id="edit-guardian-contact" pattern="^09[0-9]{9}$" maxlength="11"
-                placeholder="09XXXXXXXXX">
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                <div>
+                    <label>Contact Number</label>
+                    <input type="text" name="guardian_contact" id="edit-guardian-contact" pattern="^09[0-9]{9}$"
+                        maxlength="11">
+                </div>
+                <div>
+                    <label>Email Address</label>
+                    <input type="email" name="guardian_email" id="edit-guardian-email">
+                </div>
+            </div>
 
-            <label>Guardian's Email</label>
-            <input type="email" name="guardian_email" id="edit-guardian-email">
-
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button type="submit" class="btn-save-edit">💾 Save Changes</button>
+            <div class="modal-buttons" style="margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <button type="submit" class="btn-save-edit" style="background: #1e293b; color: white;">💾 Update
+                    Record</button>
                 <button type="button" id="btn-cancel-edit" class="btn-cancel">Cancel</button>
             </div>
         </form>
@@ -245,15 +333,22 @@ include "../config/db_connect.php";
 
 <!-- DELETE CONFIRMATION MODAL -->
 <div id="delete-confirm-modal" class="edit-modal hidden">
-    <div class="edit-modal-box" style="width: 400px; text-align: center;">
-        <h3 style="color: #dc3545;">🗑️ Delete Student</h3>
-        <p style="margin: 20px 0; font-size: 16px;">Are you sure you want to delete<br><strong
-                id="delete-student-name"></strong>?</p>
-        <p style="color: #666; font-size: 13px;">This action cannot be undone.</p>
+    <div class="edit-modal-box" style="width: 420px; text-align: center; padding: 35px 25px;">
+        <div
+            style="width: 70px; height: 70px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; margin: 0 auto 20px;">
+            ⚠️
+        </div>
+        <h3 style="color: #1e293b; border: none; margin-bottom: 10px;">Archive Student?</h3>
+        <p style="margin: 0 0 20px; font-size: 15px; color: #475569;">Are you sure you want to move <strong
+                id="delete-student-name" style="color: #1e293b;"></strong> to archives?</p>
+        <p style="color: #94a3b8; font-size: 13px; margin-bottom: 25px;">You can still restore this student later from
+            the archives section.</p>
+
         <input type="hidden" id="delete-student-id">
-        <div class="modal-buttons" style="margin-top: 20px; justify-content: center;">
-            <button id="btn-confirm-delete" class="btn-delete-confirm">Yes, Delete</button>
-            <button id="btn-cancel-delete" class="btn-cancel">Cancel</button>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="btn-confirm-delete" class="btn-delete-confirm"
+                style="flex: 1; padding: 12px; background: #dc2626;">Yes, Archive</button>
+            <button id="btn-cancel-delete" class="btn-cancel" style="flex: 1; padding: 12px;">Cancel</button>
         </div>
     </div>
 </div>
@@ -349,32 +444,65 @@ include "../config/db_connect.php";
         color: #333;
     }
 
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        margin-top: 15px;
+    }
+
+    .student-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    .student-table th {
+        background: #1e293b;
+        color: white;
+        padding: 14px 12px;
+        text-align: left;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: sticky;
+        top: 0;
+    }
+
+    .student-table td {
+        padding: 12px;
+        border-bottom: 1px solid #ecf0f1;
+        font-size: 14px;
+        color: #334155;
+    }
+
+    .student-table tr:hover {
+        background: #f8fafc;
+    }
+
     .status-connected {
         display: inline-block;
-        padding: 6px 10px;
-        background: #d4edda;
-        color: #155724;
-        border-radius: 6px;
+        padding: 4px 10px;
+        background: #dcfce7;
+        color: #166534;
+        border-radius: 20px;
         font-weight: 600;
+        font-size: 12px;
     }
 
     .status-not-connected {
         display: inline-block;
-        padding: 6px 10px;
-        background: #f8d7da;
-        color: #721c24;
-        border-radius: 6px;
+        padding: 4px 10px;
+        background: #fee2e2;
+        color: #991b1b;
+        border-radius: 20px;
         font-weight: 600;
+        font-size: 12px;
     }
 
-    .btn-prompt {
-        padding: 6px 10px;
-        background: #ffcc00;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-    }
-
+    /* Modals */
     .edit-modal.hidden {
         display: none;
     }
@@ -389,40 +517,161 @@ include "../config/db_connect.php";
         display: flex;
         align-items: center;
         justify-content: center;
+        z-index: 1000;
     }
 
     .edit-modal-box {
         background: white;
-        padding: 20px;
-        border-radius: 8px;
+        padding: 24px;
+        border-radius: 12px;
         width: 520px;
         max-width: 95%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     }
 
-    .face-status-badge {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-        z-index: 10;
+    .edit-modal-box h3 {
+        margin-top: 0;
+        color: #1e293b;
+        font-size: 1.25rem;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 12px;
     }
 
-    .face-status-badge.face-ok {
-        background: rgba(34, 197, 94, 0.9);
-        color: white;
-    }
-
-    .face-status-badge.no-face {
-        background: rgba(239, 68, 68, 0.9);
-        color: white;
-    }
-
-    /* Actions Column Styles */
+    /* Action Buttons */
     .actions-cell {
-        white-space: nowrap;
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-edit,
+    .btn-delete {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        color: #0f172a;
+        font-size: 1.75rem;
+        font-weight: 800;
+        margin-bottom: 28px;
+        border-bottom: 2px solid #f8fafc;
+        padding-bottom: 20px;
+        letter-spacing: -0.025em;
+    }
+
+    /* Form Elements */
+    .form-group {
+        margin-bottom: 4px;
+    }
+
+    .edit-modal-box label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 700;
+        color: #334155;
+        font-size: 13px;
+        letter-spacing: 0.01em;
+    }
+
+    .edit-modal-box input,
+    .edit-modal-box select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 15px;
+        color: #1e293b;
+        background: #fcfcfc;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-sizing: border-box;
+    }
+
+    .edit-modal-box input:focus,
+    .edit-modal-box select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        background: white;
+        transform: translateY(-1px);
+    }
+
+    .edit-modal-box input::placeholder {
+        color: #94a3b8;
+    }
+
+    /* Professional Buttons */
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 16px;
+    }
+
+    .btn-save-edit {
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-save-edit:hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-save-edit:active {
+        transform: translateY(0);
+    }
+
+    .btn-cancel {
+        background: #f8fafc;
+        color: #64748b;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-cancel:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+        border-color: #cbd5e1;
+    }
+
+    .btn-delete-confirm {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-delete-confirm:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Action Buttons */
+    .actions-cell {
+        display: flex;
+        gap: 8px;
     }
 
     .btn-edit,
@@ -433,80 +682,75 @@ include "../config/db_connect.php";
         cursor: pointer;
         font-size: 13px;
         font-weight: 500;
-        margin: 2px;
         transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .btn-edit {
-        background: #3b82f6;
-        color: white;
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #dbeafe;
     }
 
     .btn-edit:hover {
-        background: #2563eb;
+        background: #dbeafe;
+        color: #1d4ed8;
     }
 
     .btn-delete {
-        background: #ef4444;
-        color: white;
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fee2e2;
     }
 
     .btn-delete:hover {
-        background: #dc2626;
+        background: #fee2e2;
+        color: #b91c1c;
     }
 
-    .btn-cancel {
-        padding: 10px 20px;
-        background: #e5e7eb;
-        color: #374151;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
+    .face-status-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        z-index: 10;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
-    .btn-cancel:hover {
-        background: #d1d5db;
+    .face-status-badge.face-ok {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
     }
 
-    .btn-delete-confirm {
-        padding: 10px 20px;
-        background: #dc2626;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
+    .face-status-badge.no-face {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
     }
 
-    .btn-delete-confirm:hover {
-        background: #b91c1c;
+    border: 1px solid #dbeafe;
     }
 
-    /* Edit form styles */
-    #edit-student-form label {
-        display: block;
-        margin-top: 12px;
-        margin-bottom: 4px;
-        font-weight: 500;
-        color: #374151;
-        font-size: 14px;
+    .btn-edit:hover {
+        background: #dbeafe;
+        color: #1d4ed8;
     }
 
-    #edit-student-form input,
-    #edit-student-form select {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 14px;
+    .btn-delete {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fee2e2;
     }
 
-    #edit-student-form input:focus,
-    #edit-student-form select:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    .btn-delete:hover {
+        background: #fee2e2;
+        color: #b91c1c;
     }
 </style>
 
@@ -531,7 +775,7 @@ include "../config/db_connect.php";
 
             rows.forEach(function (row) {
                 var text = row.textContent.toLowerCase();
-                var gradeCell = row.cells[5]; // Grade Level column (index 5)
+                var gradeCell = row.cells[2]; // Grade & Section column (index 2)
                 var gradeText = gradeCell ? gradeCell.textContent.trim() : '';
 
                 var matchesSearch = searchText === '' || text.indexOf(searchText) !== -1;
@@ -580,7 +824,7 @@ include "../config/db_connect.php";
                 faceModelsLoaded = true;
                 if (loadingEl) loadingEl.textContent = 'Face detection ready';
                 if (captureBtn) captureBtn.disabled = false;
-                
+
                 // Load existing students for duplicate detection
                 loadRegisteredStudents();
             } catch (error) {
@@ -603,7 +847,7 @@ include "../config/db_connect.php";
         function findBestMatch(capturedDescriptor) {
             if (!registeredStudents.length) return null;
             let bestMatch = null;
-            let minDistance = 0.6; // Threshold for matching
+            let minDistance = 0.4; // Stricter threshold to avoid false positives
 
             registeredStudents.forEach(student => {
                 const distance = faceapi.euclideanDistance(capturedDescriptor, student.encoding);
@@ -638,7 +882,7 @@ include "../config/db_connect.php";
                     if (detections.length > 0) {
                         faceBadge.textContent = '✓ Face Detected';
                         faceBadge.className = 'face-status-badge face-ok';
-                        
+
                         // Auto-scan disabled as per user request
 
                         detections.forEach(detection => {
@@ -646,7 +890,7 @@ include "../config/db_connect.php";
                             ctx.strokeStyle = '#3b82f6'; // Match kiosk solid blue
                             ctx.fillStyle = '#3b82f6';
                             ctx.lineWidth = 2; // Slightly thicker
-                            
+
                             // Draw landmarks as dots
                             pts.forEach(p => {
                                 ctx.beginPath();
@@ -668,7 +912,7 @@ include "../config/db_connect.php";
                         faceBadge.className = 'face-status-badge no-face';
                         faceStableCount = 0;
                     }
-                } catch (e) {}
+                } catch (e) { }
             }, 150);
         }
 
@@ -694,7 +938,7 @@ include "../config/db_connect.php";
                 if (detection) {
                     const descriptor = Array.from(detection.descriptor);
                     document.getElementById('face-encoding').value = JSON.stringify(descriptor);
-                    
+
                     // Duplicate check
                     const match = findBestMatch(detection.descriptor);
                     if (match) {
@@ -790,7 +1034,7 @@ include "../config/db_connect.php";
         }
         const cancelBtn = document.getElementById('btn-cancel-add-student');
         if (cancelBtn) {
-            cancelBtn.addEventListener('click', function() {
+            cancelBtn.addEventListener('click', function () {
                 stopFaceDetection();
                 stopCamera();
                 document.getElementById('add-student-modal').classList.add('hidden');
@@ -798,10 +1042,11 @@ include "../config/db_connect.php";
         }
 
         // Photo Capture (Manual)
-        document.getElementById('capture-btn')?.addEventListener('click', async function() {
+        document.getElementById('capture-btn')?.addEventListener('click', async function () {
             const video = document.getElementById('camera-preview');
             const canvas = document.getElementById('snapshot-canvas');
             const preview = document.getElementById('photo-preview');
+            const previewContainer = document.getElementById('photo-preview-container');
             const photoInput = document.getElementById('photo-data');
             if (video && canvas && preview && photoInput) {
                 const ctx = canvas.getContext('2d');
@@ -809,8 +1054,9 @@ include "../config/db_connect.php";
                 const dataUrl = canvas.toDataURL('image/jpeg');
                 preview.src = dataUrl;
                 preview.style.display = 'block';
+                previewContainer.style.display = 'block'; // Show the container
                 photoInput.value = dataUrl;
-                
+
                 // Also generate descriptor
                 this.disabled = true;
                 this.textContent = '🔍 Generating encoding...';
@@ -821,9 +1067,9 @@ include "../config/db_connect.php";
         });
 
         // Form Submit
-        document.getElementById('add-student-form')?.addEventListener('submit', function(e) {
+        document.getElementById('add-student-form')?.addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             // Validate face encoding
             if (!document.getElementById('face-encoding').value) {
                 alert('❓ Please capture a photo with a visible face first.');
