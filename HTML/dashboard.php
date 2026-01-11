@@ -40,6 +40,9 @@ if (!isset($_SESSION["user_id"])) {
             font-size: 16px;
             z-index: 2001;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            width: auto;
+            height: auto;
+            display: inline-block;
         }
 
         .btn-logout:hover {
@@ -152,14 +155,9 @@ if (!isset($_SESSION["user_id"])) {
                 <span>Manual Override</span>
             </li>
 
-            <li onclick="loadPage('search_filter.php')">
-                <i data-lucide="search"></i>
-                <span>Search / Filter</span>
-            </li>
-
             <li onclick="loadPage('export_data.php')">
                 <i data-lucide="file-down"></i>
-                <span>Export PDF / Excel</span>
+                <span>Export / Filter Data</span>
             </li>
 
         </ul>

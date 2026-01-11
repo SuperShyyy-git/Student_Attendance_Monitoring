@@ -51,6 +51,20 @@ if ($archivedQuery) {
             ?>
         </select>
     </div>
+    <div>
+        <select id="filter-section"
+            style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-width: 150px;">
+            <option value="">All Sections</option>
+            <?php
+            $sections = $conn->query("SELECT DISTINCT section FROM section_yrlevel ORDER BY section");
+            if ($sections) {
+                while ($s = $sections->fetch_assoc()) {
+                    echo "<option value=\"{$s['section']}\">{$s['section']}</option>";
+                }
+            }
+            ?>
+        </select>
+    </div>
 </div>
 
 <!-- STATS ROW -->
@@ -763,6 +777,7 @@ if ($archivedQuery) {
         // ========================================
         var searchInput = document.getElementById('search-student');
         var gradeFilter = document.getElementById('filter-grade');
+        var sectionFilter = document.getElementById('filter-section');
         var studentTable = document.querySelector('.student-table tbody');
 
         function filterTable() {
@@ -770,6 +785,7 @@ if ($archivedQuery) {
 
             var searchText = searchInput ? searchInput.value.toLowerCase().trim() : '';
             var gradeValue = gradeFilter ? gradeFilter.value.trim() : '';
+            var sectionValue = sectionFilter ? sectionFilter.value.trim() : '';
 
             var rows = studentTable.querySelectorAll('tr');
 
@@ -780,12 +796,15 @@ if ($archivedQuery) {
 
                 var matchesSearch = searchText === '' || text.indexOf(searchText) !== -1;
                 var matchesGrade = gradeValue === '' || gradeText.includes(gradeValue);
-                row.style.display = (matchesSearch && matchesGrade) ? '' : 'none';
+                var matchesSection = sectionValue === '' || gradeText.includes(sectionValue);
+
+                row.style.display = (matchesSearch && matchesGrade && matchesSection) ? '' : 'none';
             });
         }
 
         if (searchInput) searchInput.addEventListener('input', filterTable);
         if (gradeFilter) gradeFilter.addEventListener('change', filterTable);
+        if (sectionFilter) sectionFilter.addEventListener('change', filterTable);
 
         // Guardian contact number validation
         var guardianContact = document.getElementById('guardian-contact');

@@ -60,9 +60,24 @@ if (isset($_POST['matched_student_id'])) {
         }
     }
 
-    // Determine TIME IN or TIME OUT
+    // Determine TIME IN or TIME OUT with time windows
     $today = date('Y-m-d');
     $nowTime = date('H:i:s');
+    $currentTime = strtotime($nowTime);
+
+    // Check total scans for today to enforce 4-scan limit
+    $countScans = $conn->prepare("SELECT COUNT(*) as scan_count FROM student_attendance WHERE student_id = ? AND attendance_date = ?");
+    $countScans->bind_param('ss', $student['student_id'], $today);
+    $countScans->execute();
+    $countResult = $countScans->get_result()->fetch_assoc();
+    $totalScans = $countResult['scan_count'];
+    $countScans->close();
+
+    // Enforce 4-scan daily limit (allows 2 TIME IN + 2 TIME OUT)
+    if ($totalScans >= 4) {
+        echo json_encode(['success' => false, 'message' => 'Daily scan limit reached (4 scans maximum)']);
+        exit;
+    }
 
     // Check the latest record for today to determine next status
     $checkRecords = $conn->prepare("SELECT status FROM student_attendance WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
@@ -71,17 +86,28 @@ if (isset($_POST['matched_student_id'])) {
     $latestRec = $checkRecords->get_result()->fetch_assoc();
     $checkRecords->close();
 
+    // Determine which scan this is (1-4)
+    $scanNumber = $totalScans + 1;
+
+    // Alternate between TIME IN and TIME OUT with time window validation
     $status = 'TIME IN';
+    $isLate = false;
+
     if ($latestRec) {
         $lastStatus = strtoupper(trim($latestRec['status']));
-        if ($lastStatus === 'TIME IN') {
+        if (strpos($lastStatus, 'TIME IN') !== false) {
             $status = 'TIME OUT';
-        } else if ($lastStatus === 'TIME OUT') {
-            // Already completed one cycle today
-            echo json_encode(['success' => false, 'message' => 'Attendance already completed for today']);
-            exit;
+        } else if (strpos($lastStatus, 'TIME OUT') !== false) {
+            // Check if this is the 4th scan
+            if ($totalScans >= 3) {
+                echo json_encode(['success' => false, 'message' => 'Daily scan limit reached (4 scans maximum)']);
+                exit;
+            }
+            $status = 'TIME IN'; // Allow checking in again
         }
     }
+
+    // No time restrictions - students can scan at any time
 
     // Insert attendance record with student_id
     $insertSql = "INSERT INTO student_attendance (student_id, student_name, section, grade_level, attendance_date, attendance_time, status, image_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";

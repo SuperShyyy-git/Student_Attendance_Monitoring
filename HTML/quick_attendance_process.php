@@ -49,9 +49,24 @@ $section = $student['section'] ?? '';
 $gradeLevel = $student['grade_level'] ?? '';
 $studentId = $student['student_id']; // The actual student ID from the students table
 
-// Determine TIME IN or TIME OUT
+// Determine TIME IN or TIME OUT with time windows
 $today = date('Y-m-d');
 $nowTime = date('H:i:s');
+$currentTime = strtotime($nowTime);
+
+// Check total scans for today to enforce 4-scan limit
+$countScans = $conn->prepare("SELECT COUNT(*) as scan_count FROM student_attendance WHERE student_id = ? AND attendance_date = ?");
+$countScans->bind_param('ss', $studentId, $today);
+$countScans->execute();
+$countResult = $countScans->get_result()->fetch_assoc();
+$totalScans = $countResult['scan_count'];
+$countScans->close();
+
+// Enforce 4-scan daily limit (allows 2 TIME IN + 2 TIME OUT)
+if ($totalScans >= 4) {
+    echo json_encode(['success' => false, 'message' => 'Daily scan limit reached (4 scans maximum)']);
+    exit;
+}
 
 // Check the latest record for today to determine next status
 $checkRecords = $conn->prepare("SELECT status FROM student_attendance WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
@@ -60,18 +75,22 @@ $checkRecords->execute();
 $latestRec = $checkRecords->get_result()->fetch_assoc();
 $checkRecords->close();
 
+// Determine which scan this is (1-4)
+$scanNumber = $totalScans + 1;
+
 $status = $requestedStatus;
+$isLate = false;
 
 // Validate the requested status makes sense
 if ($latestRec) {
     $lastStatus = strtoupper(trim($latestRec['status']));
 
-    if ($lastStatus === 'TIME IN' && $requestedStatus === 'TIME IN') {
+    if (strpos($lastStatus, 'TIME IN') !== false && $requestedStatus === 'TIME IN') {
         echo json_encode(['success' => false, 'message' => 'Student already timed in. Please time out first.']);
         exit;
     }
 
-    if ($lastStatus === 'TIME OUT' && $requestedStatus === 'TIME OUT') {
+    if (strpos($lastStatus, 'TIME OUT') !== false && $requestedStatus === 'TIME OUT') {
         echo json_encode(['success' => false, 'message' => 'Student already timed out. Cannot time out again.']);
         exit;
     }
@@ -82,6 +101,8 @@ if ($latestRec) {
         exit;
     }
 }
+
+// No time restrictions - students can scan at any time
 
 // Insert attendance record WITH student_id
 $insertSql = "INSERT INTO student_attendance (student_id, student_name, section, grade_level, attendance_date, attendance_time, status) VALUES (?, ?, ?, ?, ?, ?, ?)";

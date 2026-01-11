@@ -55,13 +55,13 @@ if ($hasArchive) {
 
 <div class="header-bar">
     <h2 class='table-title'>📦 Archived Attendance Records</h2>
-    <div style="display: flex; align-items: center; gap: 15px;">
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
         <span
-            style="background: #f59e0b; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">
+            style="background: #f59e0b; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; white-space: nowrap; margin-right: 15px;">
             <?php echo date('F d, Y'); ?>
         </span>
-        <button id="btn-logout" class="btn-logout">Logout</button>
     </div>
+    <button id="btn-logout" class="btn-logout">Logout</button>
 </div>
 
 <!-- SEARCH & FILTER BAR -->
@@ -142,7 +142,9 @@ if ($hasArchive) {
                 </tr>
             <?php else: ?>
                 <?php foreach ($records as $row):
-                    $statusClass = strtoupper($row['status']) === 'TIME IN' ? 'status-connected' : 'status-not-connected';
+                    // Use pattern matching to detect TIME IN vs TIME OUT (includes LATE variants)
+                    $statusUpper = strtoupper($row['status']);
+                    $statusClass = strpos($statusUpper, 'TIME IN') !== false ? 'status-connected' : 'status-not-connected';
                     ?>
                     <tr>
                         <td>
@@ -184,7 +186,9 @@ if ($hasArchive) {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 20px 0 20px;
+        padding: 10px 20px;
+        flex-wrap: wrap;
+        gap: 15px;
     }
 
     .btn-logout {

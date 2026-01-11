@@ -46,7 +46,7 @@ echo "<div class='success'>Today's records ($today): <strong>{$todayCount['total
 
 // 4. CHECK RECENT RECORDS (Last 10)
 echo "<h2>3. Recent Attendance Records (Last 10)</h2>";
-$recent = $conn->query("SELECT * FROM student_attendance ORDER BY id DESC LIMIT 10");
+$recent = $conn->query("SELECT * FROM student_attendance ORDER BY attendance_id DESC LIMIT 10");
 
 if ($recent && $recent->num_rows > 0) {
     echo "<table>";
@@ -57,7 +57,7 @@ if ($recent && $recent->num_rows > 0) {
         $studentIdDisplay = empty($row['student_id']) ? 'NULL ❌' : $row['student_id'];
 
         echo "<tr>";
-        echo "<td>{$row['id']}</td>";
+        echo "<td>{$row['attendance_id']}</td>";
         echo "<td $studentIdClass>$studentIdDisplay</td>";
         echo "<td>{$row['student_name']}</td>";
         echo "<td>" . ($row['section'] ?? '-') . "</td>";
@@ -78,12 +78,12 @@ $nullCount = $conn->query("SELECT COUNT(*) as total FROM student_attendance WHER
 if ($nullCount['total'] > 0) {
     echo "<div class='warning'>⚠️ Found <strong>{$nullCount['total']}</strong> records without student_id</div>";
 
-    $nullRecords = $conn->query("SELECT id, student_name, attendance_date, attendance_time, status FROM student_attendance WHERE student_id IS NULL OR student_id = '' ORDER BY id DESC LIMIT 15");
+    $nullRecords = $conn->query("SELECT attendance_id, student_name, attendance_date, attendance_time, status FROM student_attendance WHERE student_id IS NULL OR student_id = '' ORDER BY attendance_id DESC LIMIT 15");
     echo "<table>";
     echo "<tr><th>ID</th><th>Student Name</th><th>Date</th><th>Time</th><th>Status</th></tr>";
     while ($row = $nullRecords->fetch_assoc()) {
         echo "<tr>";
-        echo "<td>{$row['id']}</td>";
+        echo "<td>{$row['attendance_id']}</td>";
         echo "<td>{$row['student_name']}</td>";
         echo "<td>{$row['attendance_date']}</td>";
         echo "<td>{$row['attendance_time']}</td>";

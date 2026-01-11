@@ -14,7 +14,7 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
 
 $today = date('Y-m-d');
 
-// SIMPLIFIED QUERY - Using LEFT JOIN instead of subqueries for better performance
+// SIMPLIFIED QUERY - Using LEFT JOIN with LIKE to include late records
 $sql = "
     SELECT DISTINCT
         s.student_id,
@@ -26,10 +26,10 @@ $sql = "
     FROM students s
     LEFT JOIN student_attendance sa_in ON sa_in.student_id = s.student_id 
         AND sa_in.attendance_date = '$today' 
-        AND UPPER(sa_in.status) = 'TIME IN'
+        AND UPPER(sa_in.status) LIKE '%TIME IN%'
     LEFT JOIN student_attendance sa_out ON sa_out.student_id = s.student_id 
         AND sa_out.attendance_date = '$today' 
-        AND UPPER(sa_out.status) = 'TIME OUT'
+        AND UPPER(sa_out.status) LIKE '%TIME OUT%'
     ORDER BY s.lastname, s.firstname
 ";
 
@@ -53,13 +53,13 @@ $totalStudents = count($students);
 
 <div class="header-bar">
     <h2 class='table-title'>👥 Student Attendance - Daily Check-in / Check-out</h2>
-    <div style="display: flex; align-items: center; gap: 15px;">
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
         <span
-            style="background: #3498db; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">
+            style="background: #3498db; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; white-space: nowrap; margin-right: 15px;">
             <?php echo date('F d, Y'); ?>
         </span>
-        <button id="btn-logout" class="btn-logout">Logout</button>
     </div>
+    <button id="btn-logout" class="btn-logout">Logout</button>
 </div>
 
 <!-- SEARCH BAR -->
@@ -83,8 +83,7 @@ $totalStudents = count($students);
     <div
         style="flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-left: 5px solid #ef4444;">
         <span
-            style="display: block; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">No
-            Record</span>
+            style="display: block; color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">Absent</span>
         <span style="font-size: 28px; font-weight: 800; color: #ef4444;">
             <?php echo $absentCount; ?>
         </span>
@@ -97,52 +96,100 @@ $totalStudents = count($students);
     <table class="student-table" id="attendance-table">
         <thead>
             <tr>
-                <th>Student ID</th>
-                <th>Student Name</th>
-                <th>Section</th>
-                <th>Grade Level</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Status</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Student ID</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Student Name</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Section</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Grade Level</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Time In 1</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Time Out 1</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Time In 2</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Time Out 2</th>
+                <th
+                    style="padding: 14px 12px; background: #1e293b; color: white; text-align: left; font-size: 12px; text-transform: uppercase;">
+                    Status</th>
             </tr>
         </thead>
         <tbody>
             <?php if (count($students) === 0): ?>
                 <tr>
-                    <td colspan="7" style="text-align:center; padding: 50px; color: #94a3b8; font-style: italic;">No
+                    <td colspan="9" style="text-align:center; padding: 50px; color: #94a3b8; font-style: italic;">No
                         students found.</td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($students as $row):
-                    $timeIn = $row['time_in'];
-                    $timeOut = $row['time_out'];
-                    $status = $timeIn ? 'Present' : 'No Record';
-                    $statusClass = $timeIn ? 'status-connected' : 'status-not-connected';
+                    // Note: Removed the filter that skipped students without time_in
+                    // This allows manual override records to appear even if not from regular check-in
+            
+
+
+                    // Get all 4 scan times for today
+                    $today = date('Y-m-d');
+                    $stmt = $conn->prepare("SELECT attendance_time, status FROM student_attendance WHERE student_id = ? AND attendance_date = ? ORDER BY id ASC");
+                    $stmt->bind_param('ss', $row['student_id'], $today);
+                    $stmt->execute();
+                    $records = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    $stmt->close();
+
+                    // Skip students with no attendance records for today (but allow manual override)
+                    if (count($records) === 0) {
+                        continue;
+                    }
+
+                    $timeIn1 = '--:-- --';
+                    $timeOut1 = '--:-- --';
+                    $timeIn2 = '--:-- --';
+                    $timeOut2 = '--:-- --';
+
+                    // Map scans to columns based on order (use LIKE to detect TIME IN/OUT including LATE)
+                    $scanIndex = 0;
+                    foreach ($records as $rec) {
+                        $time = date('h:i A', strtotime($rec['attendance_time']));
+                        $recStatus = strtoupper(trim($rec['status']));
+
+                        if ($scanIndex == 0 && strpos($recStatus, 'TIME IN') !== false) {
+                            $timeIn1 = $time;
+                            $scanIndex++;
+                        } elseif ($scanIndex == 1 && strpos($recStatus, 'TIME OUT') !== false) {
+                            $timeOut1 = $time;
+                            $scanIndex++;
+                        } elseif ($scanIndex == 2 && strpos($recStatus, 'TIME IN') !== false) {
+                            $timeIn2 = $time;
+                            $scanIndex++;
+                        } elseif ($scanIndex == 3 && strpos($recStatus, 'TIME OUT') !== false) {
+                            $timeOut2 = $time;
+                            $scanIndex++;
+                        }
+                    }
+
+                    $status = 'Present';
+                    $statusClass = 'status-connected';
                     ?>
                     <tr>
-                        <td>
-                            <?php echo htmlspecialchars($row['student_id'] ?? 'N/A'); ?>
-                        </td>
-                        <td style="font-weight: 500;">
-                            <?php echo htmlspecialchars($row['student_name']); ?>
-                        </td>
-                        <td>
-                            <?php echo htmlspecialchars($row['section'] ?? '-'); ?>
-                        </td>
-                        <td>
-                            <?php echo htmlspecialchars($row['grade_level'] ?? '-'); ?>
-                        </td>
-                        <td
-                            style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: <?php echo $timeIn ? '#059669' : '#bdc3c7'; ?>;">
-                            <?php echo $timeIn ? date('h:i A', strtotime($timeIn)) : '--:-- --'; ?>
-                        </td>
-                        <td
-                            style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: <?php echo $timeOut ? '#dc2626' : '#bdc3c7'; ?>;">
-                            <?php echo $timeOut ? date('h:i A', strtotime($timeOut)) : '--:-- --'; ?>
-                        </td>
-                        <td><span class="<?php echo $statusClass; ?>">
-                                <?php echo $status; ?>
-                            </span></td>
+                        <td><?php echo htmlspecialchars($row['student_id'] ?? 'N/A'); ?></td>
+                        <td style="font-weight: 500;"><?php echo htmlspecialchars($row['student_name']); ?></td>
+                        <td><?php echo htmlspecialchars($row['section'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($row['grade_level'] ?? '-'); ?></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-weight: 600;"><?php echo $timeIn1; ?></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-weight: 600;"><?php echo $timeOut1; ?></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-weight: 600;"><?php echo $timeIn2; ?></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-weight: 600;"><?php echo $timeOut2; ?></td>
+                        <td><span class="<?php echo $statusClass; ?>"><?php echo $status; ?></span></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -155,7 +202,9 @@ $totalStudents = count($students);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 20px 0 20px;
+        padding: 10px 20px;
+        flex-wrap: wrap;
+        gap: 15px;
     }
 
     .btn-logout {
@@ -189,6 +238,18 @@ $totalStudents = count($students);
         text-align: left;
         font-size: 12px;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .student-table td {
+        padding: 12px;
+        border-bottom: 1px solid #ecf0f1;
+        font-size: 14px;
+        color: #334155;
+    }
+
+    .student-table tr:hover {
+        background: #f8fafc;
     }
 
     .student-table td {

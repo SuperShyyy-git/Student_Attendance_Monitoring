@@ -136,13 +136,13 @@ if ($hasArchive) {
 
 <div class="header-bar">
     <h2 class='table-title'>📜 Attendance Management - History</h2>
-    <div style="display: flex; align-items: center; gap: 15px;">
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
         <span
-            style="background: #3498db; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">
+            style="background: #3498db; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; white-space: nowrap; margin-right: 15px;">
             <?php echo date('F d, Y'); ?>
         </span>
-        <button id="btn-logout" class="btn-logout">Logout</button>
     </div>
+    <button id="btn-logout" class="btn-logout">Logout</button>
 </div>
 
 <!-- Success Message -->
@@ -161,7 +161,7 @@ if ($hasArchive) {
         <div style="display: flex; gap: 10px; justify-content: center;">
             <button onclick="closeDeleteModal()"
                 style="padding: 10px 20px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
-            <button onclick="deleteRecord()"
+            <button id="confirm-delete-btn" onclick="deleteRecord()"
                 style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Delete</button>
         </div>
     </div>
@@ -288,8 +288,12 @@ if ($hasArchive) {
                             found.</td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($records as $row):
-                        $statusClass = strtoupper($row['status']) === 'TIME IN' ? 'status-connected' : 'status-not-connected';
+                    <?php
+                    $rowNumber = 1; // Initialize row counter
+                    foreach ($records as $row):
+                        // Use pattern matching to detect TIME IN vs TIME OUT (includes LATE variants)
+                        $statusUpper = strtoupper($row['status']);
+                        $statusClass = strpos($statusUpper, 'TIME IN') !== false ? 'status-connected' : 'status-not-connected';
                         ?>
                         <tr>
                             <td><?php echo $row['id']; ?></td>
@@ -355,23 +359,26 @@ if ($hasArchive) {
                     <th>Time</th>
                     <th>Status</th>
                     <th>Archived At</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!$hasArchive): ?>
                     <tr>
-                        <td colspan="9" style="text-align:center; padding: 50px; color: #94a3b8; font-style: italic;">
+                        <td colspan="10" style="text-align:center; padding: 50px; color: #94a3b8; font-style: italic;">
                             Archive table not created yet. Archive will be created when you archive the first record.
                         </td>
                     </tr>
                 <?php elseif ($archivedTotalRecords === 0): ?>
                     <tr>
-                        <td colspan="9" style="text-align:center; padding: 50px; color: #94a3b8; font-style: italic;">No
+                        <td colspan="10" style="text-align:center; padding: 50px; color: #94a3b8; font-style: italic;">No
                             archived records found for this period.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($archivedRecords as $row):
-                        $statusClass = strtoupper($row['status']) === 'TIME IN' ? 'status-connected' : 'status-not-connected';
+                        // Use pattern matching to detect TIME IN vs TIME OUT (includes LATE variants)
+                        $statusUpper = strtoupper($row['status']);
+                        $statusClass = strpos($statusUpper, 'TIME IN') !== false ? 'status-connected' : 'status-not-connected';
                         ?>
                         <tr>
                             <td><?php echo $row['id']; ?></td>
@@ -389,6 +396,13 @@ if ($hasArchive) {
                             <td style="color: #64748b; font-size: 12px;">
                                 <?php echo date('M d, Y h:i A', strtotime($row['archived_at'])); ?>
                             </td>
+                            <td>
+                                <button
+                                    onclick="confirmDeleteArchived(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['student_name']); ?>')"
+                                    style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                                    🗑️ Delete
+                                </button>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -402,7 +416,9 @@ if ($hasArchive) {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 20px 0 20px;
+        padding: 10px 20px;
+        flex-wrap: wrap;
+        gap: 15px;
     }
 
     .btn-logout {
@@ -626,5 +642,60 @@ if ($hasArchive) {
                 window.doAttFilter();
             }
         });
+    }
+
+    // Delete archived record functions
+    var deleteArchivedIdToRemove = null;
+
+    function confirmDeleteArchived(archiveId, studentName) {
+        deleteArchivedIdToRemove = archiveId;
+        document.getElementById('delete-student-name').textContent = studentName;
+        var modal = document.getElementById('delete-modal');
+        modal.querySelector('h3').textContent = '⚠️ Delete Archived Record';
+        modal.querySelector('p').innerHTML = 'Permanently delete archived record for <strong>' + studentName + '</strong>?<br><span style="color:#dc3545;font-size:12px;">This action CANNOT be undone!</span>';
+
+        // Change the delete button to call deleteArchivedRecord
+        document.getElementById('confirm-delete-btn').onclick = deleteArchivedRecord;
+
+        modal.style.display = 'flex';
+    }
+
+    function deleteArchivedRecord() {
+        if (!deleteArchivedIdToRemove) return;
+
+        var formData = new FormData();
+        formData.append('delete_archived_id', deleteArchivedIdToRemove);
+
+        fetch('archived_attendance_delete.php', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    var successMsg = document.getElementById('success-message');
+                    successMsg.textContent = '✅ Archived record deleted successfully!';
+                    successMsg.style.display = 'block';
+                    setTimeout(function () {
+                        successMsg.style.display = 'none';
+                    }, 3000);
+
+                    closeDeleteModal();
+
+                    if (window.loadPage) {
+                        window.loadPage('attendance_combined.php' + window.location.search);
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                    closeDeleteModal();
+                }
+            })
+            .catch(error => {
+                alert('Error deleting archived record. Please try again.');
+                console.error('Delete error:', error);
+                closeDeleteModal();
+            });
     }
 </script>

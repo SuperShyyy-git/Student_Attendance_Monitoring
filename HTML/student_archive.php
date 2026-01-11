@@ -105,7 +105,9 @@ include "../config/db_connect.php";
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 20px 0 20px;
+        padding: 10px 100px 0 20px;
+        /* Added right padding to avoid logout button */
+        margin-bottom: 15px;
     }
 
     .btn-back {
@@ -118,6 +120,9 @@ include "../config/db_connect.php";
         cursor: pointer;
         font-size: 14px;
         text-decoration: none;
+        position: relative;
+        z-index: 100;
+        /* Ensure it's below the logout button but visible */
     }
 
     .btn-back:hover {
