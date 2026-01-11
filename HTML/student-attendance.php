@@ -127,10 +127,13 @@ $totalStudents = count($students);
         </thead>
         <tbody>
             <?php if (count($students) === 0): ?>
+                <!-- Hidden: No records message - hide if not yet checked in -->
+                <!--
                 <tr>
                     <td colspan="9" style="text-align:center; padding: 50px; color: #94a3b8; font-style: italic;">No
                         students found.</td>
                 </tr>
+                -->
             <?php else: ?>
                 <?php foreach ($students as $row):
                     // Note: Removed the filter that skipped students without time_in
